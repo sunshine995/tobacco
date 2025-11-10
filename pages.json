@@ -1,0 +1,309 @@
+{
+	"easycom": {
+	  "autoscan": true,
+	      "custom": {
+	          "^u--(.*)": "uview-plus/components/u-$1/u-$1.vue",
+	          "^up-(.*)": "uview-plus/components/u-$1/u-$1.vue",
+	          "^u-([^-].*)": "uview-plus/components/u-$1/u-$1.vue"
+	      }
+	},
+  "pages": [
+	  {
+		"path" : "pages/user/login",
+		"style" : 
+		{
+			"navigationBarTitleText" : "登录页面",
+			"navigationStyle": "custom"  
+		}
+	  },
+	  {
+		"path": "pages/user/register",
+		"style": {
+			"navigationBarTitleText": "注册页面"
+		}
+	},
+    {
+          "path": "pages/user/notice-list",
+          "style": {
+            "navigationBarTitleText": "我的信息",
+			"enablePullDownRefresh": true,
+            "app-plus": {
+              "titleNView": {
+                "buttons": [
+                  {
+                    "text": "+",
+                    "fontSize": 25,
+                    "fontSrc": "/static/iconfont.ttf",
+					"float":"right"
+                  }
+                ]
+              }
+            },
+            "h5": {
+              "titleNView": {
+                "buttons": [
+                  {
+                   "text": "&#xe726",
+                   "fontSize": 20,
+                   "fontSrc": "/static/iconfont.ttf",
+				   "float":"right"
+                  }
+                ]
+              }
+            }
+          }
+        },
+    {
+      "path": "pages/admin/publish",
+      "style": {
+        "navigationBarTitleText": "发布消息"
+      }
+    },
+    {
+    	"path" : "pages/user/detail",
+    	"style" : 
+    	{
+    		"navigationBarTitleText" : ""
+    	}
+    },
+	{
+	    "path": "pages/user/my",
+	    "style": {
+	      "navigationBarTitleText": "我的"
+	    }
+	},
+	{
+		"path" : "pages/fault/fault-report",
+		"style" : 
+		{
+			"navigationBarTitleText" : ""
+		}
+	},
+	{
+		"path" : "pages/tools/index",
+		"style" : 
+		{
+			"navigationBarTitleText" : "任务栏"
+		}
+	},
+	{
+		"path" : "pages/fault/fault-list",
+		"style" : 
+		{
+			"navigationBarTitleText" : "维修列表"
+		}
+	},
+	{
+		"path" : "pages/fault/fault-detail",
+		"style" : 
+		{
+			"navigationBarTitleText" : "故障详情"
+		}
+	},
+	{
+		"path" : "pages/produce/produce",
+		"style" : 
+		{
+			"navigationBarTitleText" : "生产工单"
+		}
+	},
+	{
+		"path" : "pages/produce/production-info",
+		"style" : 
+		{
+			"navigationBarTitleText" : "今日工单"
+		}
+	},
+	{
+		"path" : "pages/admin/manage-promotion",
+		"style" : 
+		{
+			"navigationBarTitleText" : ""
+		}
+	},
+	{
+	        "path" : "pages/produce/position-verification",
+	        "style" : 
+	        {
+	            "navigationBarTitleText" : "岗位验证"
+	        }
+	    },
+	    {
+	        "path" : "pages/position/strip-tobacco-warehousing",
+	        "style" : 
+	        {
+	            "navigationBarTitleText" : "片烟出库 "
+	        }
+	    },{
+	        "path" : "pages/position/robot-arm",
+	        "style" : 
+	        {
+	            "navigationBarTitleText" : " 机械手"
+	        }
+	    },{
+	        "path" : "pages/position/slicing-machine",
+	        "style" : 
+	        {
+	            "navigationBarTitleText" : "切片机"
+	        }
+	    },{
+	        "path" : "pages/position/vacuum-reconditioning",
+	        "style" : 
+	        {
+	            "navigationBarTitleText" : "真空回潮"
+	        }
+	    },{
+	        "path" : "pages/position/box-turning-machine",
+	        "style" : 
+	        {
+	            "navigationBarTitleText" : " 箱转机"
+	        }
+	    },{
+	        "path" : "pages/position/loose-moisture",
+	        "style" : 
+	        {
+	            "navigationBarTitleText" : " 松散回潮"
+	        }
+	    },{
+	        "path" : "pages/position/laser-cleaning",
+	        "style" : 
+	        {
+	            "navigationBarTitleText" : " 激光除杂"
+	        }
+	    },{
+	        "path" : "pages/position/pre-mix-cabinet",
+	        "style" : 
+	        {
+	            "navigationBarTitleText" : " 预混柜"
+	        }
+	    },{
+	        "path" : "pages/position/feeding-machine",
+	        "style" : 
+	        {
+	            "navigationBarTitleText" : " 加料机"
+	        }
+	    },{
+	        "path" : "pages/position/leaf-storage-cabinet",
+	        "style" : 
+	        {
+	            "navigationBarTitleText" : " 储叶柜"
+	        }
+	    },{
+	        "path" : "pages/position/temperature-humidity",
+	        "style" : 
+	        {
+	            "navigationBarTitleText" : " 增温增湿"
+	        }
+	    },{
+	        "path" : "pages/position/cutting-machine",
+	        "style" : 
+	        {
+	            "navigationBarTitleText" : " 切丝机"
+	        }
+	    },{
+	        "path" : "pages/position/drying-machine",
+	        "style" : 
+	        {
+	            "navigationBarTitleText" : " 烘丝机"
+	        }
+	    },{
+	            "path" : "pages/position/expanded-tobacco",
+	            "style" : 
+	            {
+	                "navigationBarTitleText" : " 膨化烟丝掺对"
+	            }
+	        
+	    },{
+	        "path" : "pages/position/flavoring-machine",
+	        "style" : 
+	        {
+	            "navigationBarTitleText" : " 加香机"
+	        }
+	        
+	    },
+	    {
+	        "path" : "pages/position/silk-mixing-cabinet",
+	        "style" : 
+	        {
+	            "navigationBarTitleText" : " 混丝柜"
+	        }
+	        
+	    },
+	    
+	    {
+	        "path" : "pages/position/packing-station",
+	        "style" : 
+	        {
+	            "navigationBarTitleText" : "装箱站"
+	        }
+	        
+	    },{
+	        
+	        "path" : "pages/position/silk-storage",
+	        "style" : 
+	        {
+	            "navigationBarTitleText" : "丝库"
+	        }
+	    },
+	    {
+	    	"path" : "pages/admin/article",
+	    	"style" : 
+	    	{
+	    		"navigationBarTitleText" : ""
+	    	}
+	    },
+	    {
+	    	"path" : "pages/admin/preview",
+	    	"style" : 
+	    	{
+	    		"navigationBarTitleText" : ""
+	    	}
+	    },
+	    {
+	    	"path" : "pages/admin/article-detail",
+	    	"style" : 
+	    	{
+	    		"navigationBarTitleText" : ""
+	    	}
+	    },
+	    {
+	    	"path" : "pages/admin/group",
+	    	"style" : 
+	    	{
+	    		"navigationBarTitleText" : "管理动态组"
+	    	}
+	    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "制丝车间",
+    "navigationBarBackgroundColor": "#f8f8f8",
+    "backgroundColor": "#f8f8f8"
+  },
+  
+  "tabBar": {
+    "list": [
+      {
+        "pagePath": "pages/user/notice-list",
+        "text": "信息",
+        "iconPath": "static/tabbar/index.png",
+        "selectedIconPath": "static/tabbar/index-select.png"
+      },
+      {
+        "pagePath": "pages/tools/index",
+        "text": "任务",
+        "iconPath": "static/tabbar/find.png",
+        "selectedIconPath": "static/tabbar/find-select.png"
+      },
+	  {
+	    "pagePath": "pages/user/my",
+	    "text": "我的",
+	    "iconPath": "static/tabbar/my.png",
+	    "selectedIconPath": "static/tabbar/my-select.png"
+	  }
+    ],
+    "color": "#666",
+    "selectedColor": "#007AFF",
+    "backgroundColor": "#fff"
+  }
+}

@@ -1,0 +1,263 @@
+
+.upload-container[data-v-77e3b51f] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.625rem;
+}
+.file-item[data-v-77e3b51f],
+.add-btn[data-v-77e3b51f] {
+  width: 5rem;
+  height: 5rem;
+  position: relative;
+  border-radius: 0.375rem;
+  overflow: hidden;
+  background: #f8f8f8;
+}
+.preview[data-v-77e3b51f] {
+  width: 100%;
+  height: 100%;
+}
+.delete-btn[data-v-77e3b51f] {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.25rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 1rem;
+  line-height: 1.25rem;
+  text-align: center;
+  padding: 0;
+  margin: 0;
+  z-index: 10;
+}
+.file-name[data-v-77e3b51f] {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  font-size: 0.625rem;
+  padding: 0.125rem 0;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 上传进度样式 */
+.upload-progress[data-v-77e3b51f] {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 0.1875rem;
+  background: rgba(255, 255, 255, 0.3);
+}
+.progress-bar[data-v-77e3b51f] {
+  height: 100%;
+  background: #e0e0e0;
+  border-radius: 0.09375rem;
+  overflow: hidden;
+}
+.progress-fill[data-v-77e3b51f] {
+  height: 100%;
+  background: #4CAF50;
+  border-radius: 0.09375rem;
+  transition: width 0.3s ease;
+}
+.add-btn[data-v-77e3b51f] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 0.0625rem dashed #ccc;
+  cursor: pointer;
+}
+.icon[data-v-77e3b51f] {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-bottom: 0.25rem;
+}
+.text[data-v-77e3b51f] {
+  font-size: 0.75rem;
+  color: #666;
+  text-align: center;
+}
+
+/* ================================ */
+/* ✅ 新增：外部图片标识样式 */
+/* ================================ */
+.external-badge[data-v-77e3b51f] {
+  position: absolute;
+  top: 0.25rem;
+  left: 0.25rem;
+  background: rgba(0, 122, 255, 0.8);
+  color: white;
+  font-size: 0.5625rem;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.375rem;
+  z-index: 5;
+}
+
+
+.rich-text-editor[data-v-ad97a15f] {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #f5f5f5;
+}
+
+/* 头部区域样式 */
+.header-section[data-v-ad97a15f] {
+  background: #fff;
+  padding: 0.9375rem;
+  border-bottom: 0.03125rem solid #eee;
+}
+.title-input-section[data-v-ad97a15f] {
+  margin-bottom: 1.25rem;
+  position: relative;
+}
+.section-label[data-v-ad97a15f] {
+  display: block;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.625rem;
+}
+.title-input[data-v-ad97a15f] {
+  width: 100%;
+  height: 2.5rem;
+  padding: 0 0.9375rem;
+  background: #f8f8f8;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  color: #333;
+  border: 0.0625rem solid #e0e0e0;
+  box-sizing: border-box;
+}
+.title-input[data-v-ad97a15f]:focus {
+  border-color: #007aff;
+  background: #fff;
+}
+.char-count[data-v-ad97a15f] {
+  position: absolute;
+  right: 0.625rem;
+  bottom: 0.625rem;
+  font-size: 0.75rem;
+  color: #999;
+}
+.cover-upload-section[data-v-ad97a15f] {
+  margin-bottom: 0.625rem;
+}
+.cover-upload-container[data-v-ad97a15f] {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.cover-tip[data-v-ad97a15f] {
+  font-size: 0.75rem;
+  color: #999;
+  margin-top: 0.46875rem;
+  align-self: flex-start;
+}
+
+/* 工具栏样式 */
+.toolbar[data-v-ad97a15f] {
+  background: #fff;
+  padding: 0.625rem;
+  border-bottom: 0.03125rem solid #eee;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+}
+.toolbar-group[data-v-ad97a15f] {
+  display: flex;
+  gap: 0.625rem;
+}
+.toolbar-item[data-v-ad97a15f] {
+  padding: 0.375rem 0.75rem;
+  background: #f8f8f8;
+  border-radius: 0.25rem;
+  font-size: 0.8125rem;
+  color: #333;
+  cursor: pointer;
+}
+.toolbar-item.active[data-v-ad97a15f] {
+  background: #007aff;
+  color: #fff;
+}
+
+/* 编辑器样式 */
+.editor[data-v-ad97a15f] {
+  flex: 1;
+  background: #fff;
+  padding: 0.9375rem;
+  margin: 0.625rem;
+  border-radius: 0.375rem;
+  box-shadow: 0 0.0625rem 0.375rem rgba(0,0,0,0.1);
+}
+
+/* 图片上传区域 */
+.image-upload-section[data-v-ad97a15f] {
+  background: #fff;
+  margin: 0.625rem;
+  padding: 0.9375rem;
+  border-radius: 0.375rem;
+  box-shadow: 0 0.0625rem 0.375rem rgba(0,0,0,0.1);
+}
+.upload-actions[data-v-ad97a15f] {
+  display: flex;
+  gap: 0.625rem;
+  margin-top: 0.9375rem;
+}
+.btn-upload[data-v-ad97a15f], .btn-cancel[data-v-ad97a15f] {
+  flex: 1;
+  height: 2.5rem;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+}
+.btn-upload[data-v-ad97a15f] {
+  background: #007aff;
+  color: #fff;
+}
+.btn-cancel[data-v-ad97a15f] {
+  background: #f8f8f8;
+  color: #333;
+}
+
+/* 底部操作栏 */
+.bottom-actions[data-v-ad97a15f] {
+  padding: 0.9375rem;
+  background: #fff;
+  border-top: 0.03125rem solid #eee;
+  display: flex;
+  gap: 0.625rem;
+}
+.btn-save[data-v-ad97a15f], .btn-preview[data-v-ad97a15f] {
+  flex: 1;
+  height: 2.5rem;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+.btn-save[data-v-ad97a15f] {
+  background: #007aff;
+  color: #fff;
+}
+.btn-save[data-v-ad97a15f]:disabled {
+  background: #ccc;
+  color: #999;
+}
+.btn-preview[data-v-ad97a15f] {
+  background: #34c759;
+  color: #fff;
+}
+.btn-preview[data-v-ad97a15f]:disabled {
+  background: #ccc;
+  color: #999;
+}
