@@ -104,7 +104,6 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getArticleDetail } from '@/api/notice.js'
-import config from 'uview-plus/libs/config/config'
 
 // 响应式数据
 const loading = ref(true)

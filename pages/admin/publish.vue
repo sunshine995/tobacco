@@ -23,11 +23,11 @@
       
       <!-- 图片上传组件 -->
       <view class="form-group">
-		  <label class="form-label">上传图片</label>
-        <upload-image
-          ref="uploadRef"
-          :max-count="3"
-        />
+        <label class="form-label">上传图片</label>
+          <upload-image
+            ref="uploadRef"
+            :max-count="3"
+          />
       </view>
 	  
 	 <text class="section-title">文件上传</text>
@@ -38,7 +38,11 @@
 	       accept=".pdf,.doc,.docx"
 	       @success="onFileSuccess"
 	     />
-		  <button @click="handleUploadAll" class="upload-btn">上传所有文件</button>
+      <VideoUploader
+          ref="videoUploader"
+          :max-count="3"
+          @success="onVideoSuccess"
+      />
     </view>
     
     <view class="form-card">
@@ -168,40 +172,18 @@ import UploadImage from '@/components/UploadImage.vue';
 import{ getWorkGroupByUserId } from '@/api/workGroup.js'
 import{ publishNotice } from '@/api/notice.js'
 import UploadFile from '@/components/UploadMedia.vue';
+import VideoUploader from '@/components/VideoUploader.vue';
 
 const uploadRef = ref(null); // 上传组件的ref
-const imageFiles = ref([]); // 存原始 file 对象 { url: '临时路径' }
 
 // 引用子组件
 const fileRef = ref();
 
-// 存储最终上传成功的 URL
-const uploadedUrls = ref([]);
+const videoUploader = ref(null);
+
 
 const onFileSuccess = (result) => {
   console.log('文件上传成功:', result);
-};
-
-const handleUploadAll = async () => {
-  try {
-    
-    // 上传文件
-    const fileResults = await fileRef.value.triggerUpload();
-	const urls = fileRef.value.getUploadedUrls();
-	const originalFileNames = fileResults
-	  .filter(item => item.success) // 只保留上传/选择成功的项（可选）
-	  .map(item => item.file.originalFileName);
-	
-	console.log(originalFileNames); 
-    console.log('文件上传结果:', fileResults);
-    
-    uni.showToast({
-      title: '上传完成',
-      icon: 'success'
-    });
-  } catch (error) {
-    console.error('上传失败:', error);
-  }
 };
 
 // 响应式数据
@@ -254,13 +236,18 @@ const partyBranchesTree = ref([
 
 const dynamicGroups = ref([])
 const sending = ref(false)
-const imageUploadRef = ref(null)
 
 
 // 加载数据
 onMounted(async () => {
   await loadDynamicGroups()
 })
+
+const onVideoSuccess = (result) => {
+  console.log('✅ 视频上传成功');
+  console.log('提取的 URL:', result.url);
+  console.log('原始响应:', result.rawResponse);
+};
 
 const loadDynamicGroups = async () => {
   try {
@@ -278,7 +265,6 @@ const onWorkGroupChange = (e) => {
 
 const onDynamicGroupChange = (e) => {
   // e.detail.value 是选中的 checkbox 的 value 数组
-  console.log(e)
   form.dynamicGroupIds = e.detail.value.map(id => String(id)); // 确保类型一致，如果 group.id 是数字，这里可以转为字符串，或者根据实际情况调整
 }
 
@@ -361,13 +347,21 @@ const sendMessage = async () => {
   
   try {
     // 上传图片
-    const uploadResults = await uploadRef.value.triggerUpload();
+    await uploadRef.value.triggerUpload();
     // 获取所有上传成功的图片URL
     const imageUrls = uploadRef.value.getUploadedUrls();
     
-	const fileResults = await fileRef.value.triggerUpload();
-	const fileUrls = fileRef.value.getUploadedUrls();
+	  // await fileRef.value.triggerUpload();
+	  // const fileUrls = fileRef.value.getUploadedUrls();
+
+    // 上传文件
+    const fileResults = await fileRef.value.triggerUpload();
+	  const filesUrls = fileRef.value.getUploadedUrls();
+	  const originalFileNames = fileResults
+      .filter(item => item.success) // 只保留上传/选择成功的项（可选）
+      .map(item => item.file.originalFileName);
     
+    const videoUrls = videoUploader.value.getUploadedUrls();
     // 根据选择的发送范围类型构建数据
     let rangeIds = [];
     let rangeType = form.sendRangeType;
@@ -430,9 +424,11 @@ const sendMessage = async () => {
       title: form.title,
       content: form.content,
       images: imageUrls, // 图片URL数组
-	  type: rangeType,
-      filesUrl: fileUrls,
-	  rangeIds: rangeIds,
+	    type: rangeType,
+      filesUrl: filesUrls,
+      originalFileNames: originalFileNames,
+      videoUrls: videoUrls,
+	    rangeIds: rangeIds,
       userId: uni.getStorageSync('userId'), // 假设用户ID存储在本地
       username:uni.getStorageSync('userInfo').name,
     }
@@ -531,24 +527,6 @@ const saveDraft = () => {
   gap: 20rpx;
 }
 
-.range-option {
-  flex: 1;
-  min-width: 150rpx;
-  text-align: center;
-  padding: 20rpx;
-  border: 2rpx solid #e5e5e5;
-  border-radius: 12rpx;
-  font-size: 28rpx;
-  transition: all 0.3s;
-}
-
-.range-option.active {
-  border-color: #1E6FBA;
-  background: #f0f8ff;
-  color: #1E6FBA;
-  font-weight: 600;
-}
-
 .checkbox-group {
   display: flex;
   flex-direction: column;
@@ -570,11 +548,6 @@ const saveDraft = () => {
 .checkbox-text {
   flex: 1;
   font-size: 28rpx;
-}
-
-.member-count {
-  font-size: 24rpx;
-  color: #999;
 }
 
 .action-buttons {
@@ -659,6 +632,23 @@ const saveDraft = () => {
 
 .child-item {
   margin-bottom: 10rpx;
+}
+
+.range-option {
+  padding: 20rpx 30rpx;
+  background: #f5f7fa;
+  border: 2rpx solid #e5e5e5;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  color: #666;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.range-option.active {
+  background: #1E6FBA;
+  color: white;
+  border-color: #1E6FBA;
 }
 </style>
 

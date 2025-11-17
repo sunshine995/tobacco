@@ -202,6 +202,23 @@ const loadNotices = async () => {
   }
 };
 
+// 新增：统一刷新函数
+const refreshData = async () => {
+  try {
+    await Promise.all([
+      loadNotices(),
+      loadBanners()
+    ]);
+  } catch (err) {
+    console.error('刷新失败:', err);
+  } finally {
+    uni.stopPullDownRefresh(); // 👈 必须调用！
+  }
+};
+
+// 注册下拉刷新监听
+onPullDownRefresh(refreshData);
+
 // 页面显示时加载（支持 tabbar 页面刷新）
 onShow(() => {
   loadNotices();

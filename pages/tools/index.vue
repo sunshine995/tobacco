@@ -32,7 +32,9 @@ const toolList = computed(() => {
     { name: 'error-circle', title: '异常上报' },
     { name: 'star', title: '异常信息' },
 	{name: 'grid', title: '我的工单' },
-	{name: 'level', title: '动态组' }
+	{name: 'level', title: '动态组' },
+	{name: 'level', title: '箱皮管理' },
+	{name: 'level', title: '膨化烟丝管理' }
 		
   ]
 
@@ -74,9 +76,15 @@ const handleGridClick = (index) => {
 	case '我的工单':
 	  url = '/pages/produce/production-info'
 	  break
-	  case '动态组':
-	    url = '/pages/admin/group'
-	    break
+	case '动态组':
+	  url = '/pages/admin/group'
+	  break
+	case '箱皮管理':
+	  url = '/pages/produce/carton'
+	  break
+	case '膨化烟丝管理':
+	  url = '/pages/produce/tobaccoInventory'
+	  break
     default:
       toastRef.value?.show({
         type: 'info',

@@ -1,13 +1,13 @@
 <template>
   <view class="login-container">
     <!-- 背景 -->
-    <u--image
+    <u-image
       src="https://cdn.uviewui.com/uview/album/1.jpg"
       width="100vw"
       height="100vh"
       mode="aspectFill"
     >
-    </u--image>
+    </u-image>
     
     <!-- 渐变遮罩 -->
     <view class="mask"></view>
@@ -19,7 +19,7 @@
       <u-form :model="form" ref="uForm" labelPosition="left">
         <!-- 账号 -->
         <u-form-item borderBottom>
-          <u--input
+          <u-input
             v-model="form.userId"
             placeholder="请输入账号"
             prefixIcon="account"
@@ -30,7 +30,7 @@
 
         <!-- 密码 -->
         <u-form-item borderBottom>
-          <u--input
+          <u-input
             v-model="form.password"
             placeholder="请输入密码"
             type="password"

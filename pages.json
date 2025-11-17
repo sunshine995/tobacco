@@ -90,7 +90,7 @@
 		"path" : "pages/fault/fault-list",
 		"style" : 
 		{
-			"navigationBarTitleText" : "维修列表"
+			"navigationBarTitleText" : "异常列表"
 		}
 	},
 	{
@@ -272,7 +272,21 @@
 	    	{
 	    		"navigationBarTitleText" : "管理动态组"
 	    	}
-	    }
+	    },
+		{
+			"path" : "pages/produce/carton",
+			"style" : 
+			{
+				"navigationBarTitleText" : "箱皮管理"
+			}
+		},
+		{
+			"path" : "pages/produce/tobaccoInventory",
+			"style" : 
+			{
+				"navigationBarTitleText" : "箱皮管理"
+			}
+		}
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",

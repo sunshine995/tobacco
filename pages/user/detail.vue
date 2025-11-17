@@ -29,6 +29,42 @@
 	      </view>
 	    </scroll-view>
 	  </view>
+
+    <!-- 文件附件区域 -->
+    <view v-if="noticeDetail.files && noticeDetail.files.length > 0" class="file-attachments">
+      <view class="section-title">附件文件</view>
+      <view class="file-list">
+        <view
+          v-for="(file, index) in noticeDetail.files"
+          :key="index"
+          class="file-item"
+          @click="downloadFile(file)"
+        >
+          <text class="file-name">{{ file.name || '未命名文件' }}</text>
+          <u-icon name="arrow-right" size="28" color="#999"></u-icon>
+        </view>
+      </view>
+    </view>
+
+<!-- 视频区域 -->
+<view v-if="noticeDetail.videoUrls && noticeDetail.videoUrls.length > 0" class="video-section">
+        <view class="section-title">视频附件</view>
+        <view class="video-list">
+          <view
+            v-for="(videoUrl, index) in noticeDetail.videoUrls"
+            :key="index"
+            class="video-item"
+          >
+            <video
+              :src="videoUrl"
+              controls
+              :poster="getVideoPoster(videoUrl)"
+              class="notice-video"
+              @play="onVideoPlay(index)"
+            />
+          </view>
+        </view>
+      </view>
 	  
 	  <!-- 管理员专属：未读用户列表（直接显示，无需按钮） -->
 		<view v-if="isAdmin" class="admin-section">
@@ -80,6 +116,8 @@ const unreadCount = ref(0);
 
 const hasRead = ref(false); // 新增：是否已点击“已阅”
 
+const currentPlayingVideo = ref(null);
+
 onLoad((options) => {
   // options 对象包含了所有通过 url 传递的查询参数
   
@@ -88,7 +126,6 @@ onLoad((options) => {
     currentUserId.value = options.userId; // 获取 userId
 
     const userRole = uni.getStorageSync('userInfo').role || '';
-	console.log(uni.getStorageSync('userInfo'))
     isAdmin.value = userRole === 'ADMIN';
   } else {
     console.warn('缺少必要的参数 id 或 userId');
@@ -122,7 +159,20 @@ const loadNoticeDetail = async () => {
   try {
     const response = await get(`/api/notice/detail`, {noticeId: noticeId.value});
     noticeDetail.value = response;
-	console.log(noticeDetail)
+	  console.log(noticeDetail)
+    const files = [];
+    if (Array.isArray(response.fileUrls) && Array.isArray(response.fileOriginUrls)) {
+      for (let i = 0; i < response.fileUrls.length; i++) {
+        files.push({
+          name: response.fileOriginUrls[i] || '未命名文件',
+          url: response.fileUrls[i]
+        });
+      }
+    }
+    noticeDetail.value = {
+      ...response,
+      files,   // 注入结构化文件
+    };
   } catch (err) {
     console.error('获取公告详情失败:', err);
     uni.showToast({ title: '加载失败', icon: 'none' });
@@ -134,7 +184,6 @@ const loadUnreadUsers = async () => {
   try {
     const res = await get(`/api/notice/unreadUsers`, { noticeId: noticeId.value });
     const data = res.data || res; // 根据实际返回结构调整
-	console.log(data)
     unreadUsers.value = data.users || [];
     unreadCount.value = data.unreadCount || unreadUsers.value.length;
   } catch (err) {
@@ -151,6 +200,60 @@ const previewImage = (index) => {
     current: index,
     urls: noticeDetail.value.images
   });
+};
+
+// 下载文件（兼容 H5 / 小程序 / App）
+const downloadFile = (file) => {
+  const url = file.url;
+  if (!url) return;
+
+  // H5：直接新开标签页或触发下载
+  // #ifdef H5
+  const link = document.createElement('a');
+  link.href = url;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.click();
+  // #endif
+
+  // 小程序 / App：使用 uni.downloadFile + uni.openDocument（仅支持部分格式）
+  // #ifndef H5
+  uni.showLoading({ title: '准备下载...' });
+  uni.downloadFile({
+    url: url,
+    success: (res) => {
+      if (res.statusCode === 200) {
+        // 尝试打开文档（PDF、Word、Excel 等）
+        uni.openDocument({
+          filePath: res.tempFilePath,
+          success: () => {
+            console.log('文档已打开');
+          },
+          fail: (err) => {
+            console.warn('无法打开文档，尝试保存到本地', err);
+            // 可选：提示用户“文件已下载，可在文件管理中查看”
+            uni.showToast({ title: '文件已下载', icon: 'success' });
+          }
+        });
+      } else {
+        uni.showToast({ title: '下载失败', icon: 'none' });
+      }
+    },
+    fail: (err) => {
+      console.error('下载失败:', err);
+      uni.showToast({ title: '下载失败，请重试', icon: 'none' });
+    },
+    complete: () => {
+      uni.hideLoading();
+    }
+  });
+  // #endif
+};
+// 可选：为视频生成封面（简单处理）
+const getVideoPoster = (url) => {
+  // 如果你有 poster 字段，直接用；否则可返回空或默认图
+  // 这里只是示例，实际可忽略 poster 属性
+  return ''; 
 };
 
 const markAsRead = async () => {
@@ -179,6 +282,18 @@ const formatDate = (timestamp) => {
   if (!timestamp) return '';
   const date = new Date(timestamp);
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
+};
+
+// 视频播放事件处理（避免多个视频同时播放）
+const onVideoPlay = (index) => {
+  if (currentPlayingVideo.value !== null && currentPlayingVideo.value !== index) {
+    // 暂停其他正在播放的视频
+    const videos = document.querySelectorAll('.notice-video');
+    if (videos[currentPlayingVideo.value]) {
+      videos[currentPlayingVideo.value].pause();
+    }
+  }
+  currentPlayingVideo.value = index;
 };
 </script>
 
@@ -386,6 +501,68 @@ const formatDate = (timestamp) => {
 .gallery-image:hover {
   transform: scale(1.02);
   transition: transform 0.2s;
+}
+
+/* ========== 文件附件 ========== */
+.file-attachments {
+  margin-top: 40rpx;
+  border-top: 1rpx solid #eee;
+  padding-top: 30rpx;
+}
+
+.file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.file-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24rpx 20rpx;
+  background-color: #f8f8f8;
+  border-radius: 12rpx;
+  border: 1rpx solid #eee;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.file-name {
+  flex: 1;
+  word-break: break-all;
+}
+
+/* ========== 视频 ========== */
+.video-section {
+  margin-top: 40rpx;
+  border-top: 1rpx solid #eee;
+  padding-top: 30rpx;
+}
+
+.video-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.video-item {
+  width: 100%;
+}
+
+.notice-video {
+  width: 100%;
+  height: 360rpx; /* 固定高度，避免布局跳动 */
+  background: #000;
+  border-radius: 12rpx;
+}
+
+.video-name {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 28rpx;
+  color: #666;
+  text-align: center;
 }
 
 </style>

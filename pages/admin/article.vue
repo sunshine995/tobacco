@@ -138,18 +138,6 @@ const onEditorReady = () => {
     .exec()
 }
 
-// 封面图片上传成功
-// const onCoverUploadSuccess = ({ file, index }) => {
-//   console.log('封面图片上传成功:', file)
-//   coverImageUrl.value = file.previewUrl
-//   uni.showToast({ title: '封面设置成功', icon: 'success' })
-// }
-
-// // 封面图片上传失败
-// const onCoverUploadFail = ({ error, index }) => {
-//   console.error('封面图片上传失败:', error)
-//   uni.showToast({ title: '封面设置失败', icon: 'none' })
-// }
 
 // 显示内容图片上传组件
 const showImageUpload = () => {

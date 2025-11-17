@@ -77,7 +77,7 @@ const localFiles = ref([]);
 // 外部设置的图片列表
 const externalFiles = ref([]);
 
-const BASE_URL = 'http://192.168.179.185:8081/api';
+const BASE_URL = 'http://192.168.215.185:8081/api';
 const fullUploadUrl = computed(() => props.uploadUrl || `${BASE_URL}/upload`);
 
 // 计算属性：合并显示的文件列表
