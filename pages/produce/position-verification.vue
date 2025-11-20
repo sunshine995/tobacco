@@ -112,6 +112,57 @@ const orderInfo = reactive({
   number: ''
 })
 
+// 页面加载时获取URL参数
+onMounted(async () => {
+  // 从URL参数获取订单信息
+  const pages = getCurrentPages()
+  const currentPage = pages[pages.length - 1]
+  const options = currentPage.options || {}
+  
+  // 从URL参数更新orderInfo
+  if (options.id) orderInfo.id = decodeURIComponent(options.id)
+  if (options.batchNo) orderInfo.batchNo = decodeURIComponent(options.batchNo)
+  if (options.brand) orderInfo.brand = decodeURIComponent(options.brand)
+  if (options.number) orderInfo.number = decodeURIComponent(options.number)
+  if (options.yield) orderInfo.yield = decodeURIComponent(options.yield)
+  
+  console.log('position-verification - URL参数获取到的订单信息:', orderInfo)
+  
+  // 尝试从全局获取数据（作为补充）
+  let success = getDataFromGlobal()
+  if (!success) setTimeout(getDataFromGlobal, 300)
+  
+  setTimeout(async () => {
+    if (!orderInfo.batchNo) return
+
+    try {
+      for (const position of positions) {
+        try {
+          const result = await byBatchIdAndSegment(orderInfo.batchNo, position.segment)
+          if (result) {
+            position.hasCurrentBatchStatus = true
+            position.verificationStatus = result.verificationResult?.status || ''
+            position.currentStep = result.verificationResult?.current_step || 0
+            position.dataCount = result.dataCount || 0 // 注意接口字段（是dataCount还是data_count）
+            
+            // 调试日志
+            console.log(`岗位：${position.name}`)
+            console.log(`  - 进度：${position.dataCount}/${position.totalCount}`)
+            console.log(`  - currentStep：${position.currentStep}`)
+          }
+        } catch (error) {
+          console.error(`查询${position.name}验证状态失败:`, error)
+          position.hasCurrentBatchStatus = false
+          position.dataCount = 0
+          position.currentStep = 0
+        }
+      }
+    } catch (e) {
+      console.error('查询验证状态失败:', e)
+    }
+  }, 500)
+})
+
 // 岗位验证状态数据（每个岗位配置：自定义分母totalCount + 接口返回的分子dataCount）
 const positions = reactive([
   {
@@ -265,6 +316,16 @@ const positions = reactive([
     dataCount: 0
   },
   {
+    name: '残烟丝验证',
+    segment: '残烟丝',
+    path: 'residual-tobacco',
+    verificationStatus: '',
+    currentStep: 0,
+    hasCurrentBatchStatus: false,
+    totalCount: 3, 
+    dataCount: 0
+  },
+  {
     name: '混丝柜验证',
     segment: '混丝柜',
     path: 'silk-mixing-cabinet',
@@ -327,7 +388,7 @@ const handleNavigate = (path) => {
       app.globalData.currentOrder = { ...orderInfo }
     }
     uni.navigateTo({
-      url: `/pages/position/${path}?id=${encodeURIComponent(orderInfo.id)}&batchNo=${encodeURIComponent(orderInfo.batchNo)}&brand=${encodeURIComponent(orderInfo.brand)}&number=${encodeURIComponent(orderInfo.number)}`
+      url: `/pages/position/${path}?id=${encodeURIComponent(orderInfo.id)}&batchNo=${encodeURIComponent(orderInfo.batchNo)}&brand=${encodeURIComponent(orderInfo.brand)}&number=${encodeURIComponent(orderInfo.number)}&yield=${encodeURIComponent(orderInfo.yield || '')}`
     })
   } catch (error) {
     console.error('导航失败:', error)

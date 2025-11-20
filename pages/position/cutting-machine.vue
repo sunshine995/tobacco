@@ -11,7 +11,6 @@
         <text class="section-main-title">图片上传</text>
       </view>
       <text class="upload-label">牌号 批次号图</text>
-      <!-- 关键修改：通过externalImages传入历史图片 -->
       <UploadImage
         ref="brandUploadRef"
         title="添加批次号图"
@@ -167,6 +166,14 @@
             :key="item.id || index"
             class="tobacco-card"
           >
+            <!-- 核心逻辑：按退出天数显示对应提示 -->
+            <view v-if="getDaysSinceExit(item.exitTime) <= 5" class="prompt-tag same-brand">
+              同牌号掺兑
+            </view>
+            <view v-else-if="getDaysSinceExit(item.exitTime) > 5 && getDaysSinceExit(item.exitTime) <= 10" class="prompt-tag downgrade">
+              降级掺兑
+            </view>
+            
             <view class="tobacco-info">
               <view class="info-row">
                 <text class="label">牌号：</text>
@@ -195,13 +202,12 @@
               </view>
             </view>
             <view class="tobacco-action">
-              <u-button 
+              <up-button 
                 type="success" 
-                size="mini" 
                 text="加入本批料中"
                 shape="circle"
                 @click.stop="addToBatch(item, index)"
-              ></u-button>
+              ></up-button>
             </view>
           </view>
         </u-cell-group>
@@ -336,7 +342,6 @@ const form = ref({
   imagesWidth: [],    // 切丝宽度图
   imagesJunk: [],     // 杂物图
   junkRemark: '',     // 杂物备注
-  // 外部图片URL数组，用于组件回显
   externalImagesBrand: [],
   externalImagesWidth: [],
   externalImagesJunk: []
@@ -359,14 +364,14 @@ const searchKeyword = ref('');            // 搜索关键词
 const showTobaccoSections = ref(true);    // 是否显示烟叶区域
 const currentOperation = ref(null);       // 当前操作信息
 
-// 在现有响应式变量后添加
-const loading = ref(false); // 接口加载状态
-const errorMsg = ref(''); // 错误提示信息
+// 接口加载状态和错误提示
+const loading = ref(false);
+const errorMsg = ref('');
 
 // 引入统一的请求工具
 import { request } from '../../utils/request.js';
 
-// 新增：根据工单ID查询已加入的烟叶
+// 根据工单ID查询已加入的烟叶
 const fetchAddedTobaccosByWorkOrderId = async (workOrderId) => {
   if (!workOrderId) {
     console.warn('工单ID为空，不发起请求');
@@ -420,7 +425,6 @@ const handleVerifySuccess = () => {
     title: '三级验证成功',
     icon: 'success'
   });
-  // 可以在这里添加验证成功后的额外逻辑，如刷新页面或跳转到其他页面
 };
 
 // 三级验证失败处理函数
@@ -434,7 +438,6 @@ const handleVerifyFail = (error) => {
 // 三级验证过程中的验证处理函数
 const handleValidate = (data) => {
   console.log('验证过程数据:', data);
-  // 可以在这里添加验证过程中的逻辑，如显示加载状态等
 };
 
 // 监听搜索关键词变化，触发接口请求
@@ -483,6 +486,15 @@ const formatTime = (timeString) => {
   if (!timeString) return '';
   const date = new Date(timeString);
   return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+};
+
+// 计算退出烟叶的天数
+const getDaysSinceExit = (exitTime) => {
+  if (!exitTime) return 0;
+  const exitDate = new Date(exitTime);
+  const now = new Date();
+  const diffTime = Math.abs(now - exitDate);
+  return Math.floor(diffTime / (1000 * 60 * 60 * 24));
 };
 
 // 隐藏键盘
@@ -677,7 +689,7 @@ onLoad((options) => {
   loadExistingCheckRecord();
 });
 
-// 加载历史检查记录（核心修改：适配组件的externalImages格式）
+// 加载历史检查记录
 const loadExistingCheckRecord = async () => {
   if (!myOrder.value || !myOrder.value.batchNo) return;
   
@@ -692,9 +704,7 @@ const loadExistingCheckRecord = async () => {
     form.value.imagesJunk = [];
     form.value.junkRemark = '';
 
-    // request.js已经将res.data.data作为resolve值返回，所以这里的res直接是业务数据
     if (res && res.verificationResult) {
-        // 处理verificationResult（如果是字符串则解析）
         const verificationResult = typeof res.verificationResult === 'string'
           ? JSON.parse(res.verificationResult)
           : res.verificationResult;
@@ -704,8 +714,6 @@ const loadExistingCheckRecord = async () => {
         const images = verificationResult.images || {};
         console.log('需要回显的图片数据:', images);
 
-        // 使用组件的setPreviewImages方法设置预览图片
-        // 确保传递的是字符串URL数组
         const processImageUrls = (urls) => {
           if (!urls || !Array.isArray(urls)) return [];
           return urls.map(item => typeof item === 'string' ? item : (item.url || ''))
@@ -767,7 +775,6 @@ const publish = async () => {
   submitting.value = true;
 
   try {
-    // 触发上传
     const uploadPromises = [];
     if (brandUploadRef.value) uploadPromises.push(brandUploadRef.value.triggerUpload());
     if (widthUploadRef.value) uploadPromises.push(widthUploadRef.value.triggerUpload());
@@ -775,7 +782,6 @@ const publish = async () => {
 
     const allResults = await Promise.all(uploadPromises);
     
-    // 检查失败的上传
     const failedUploads = allResults.flat().filter(r => !r.success);
     if (failedUploads.length > 0) {
       uni.showToast({
@@ -785,12 +791,10 @@ const publish = async () => {
       return;
     }
 
-    // 获取上传后的URL
     const imagesBrand = brandUploadRef.value.getAllImageUrls();
     const imagesWidth = widthUploadRef.value.getAllImageUrls();
     const imagesJunk = junkUploadRef.value.getAllImageUrls();
 
-    // 构建提交数据
     const verificationResult = {
       images: {
         imagesBrand,
@@ -801,13 +805,11 @@ const publish = async () => {
       state: "normal"
     };
     
-    // const dataCount = imagesBrand.length + imagesWidth.length + imagesJunk.length;
-    
     const submitData = {
       batchId: myOrder.value.batchNo,
       brand: myOrder.value.brand,
       segment: "切丝机",
-      verificationResult: verificationResult, // 直接传递对象
+      verificationResult: verificationResult,
       dataCount: 2,
       operatorId: uni.getStorageSync('userId') || ''
     };
@@ -861,7 +863,7 @@ const showRemoveConfirm = (item, index) => {
   }
 };
 
-// 新增：调用后端移除接口并更新列表
+// 调用后端移除接口并更新列表
 const removeTobacco = async (item, index) => {
   if (!myOrder.value.id) {
     uni.$u.toast('未获取到当前工单信息，无法移除');
@@ -986,7 +988,7 @@ const initData = async () => {
 </script>
 
 <style scoped>
-/* 样式保持不变 */
+/* 样式保持不变 + 新增提示标签样式 */
 .container {
   padding: 20rpx;
   background-color: #f5f5f5;
@@ -1152,6 +1154,25 @@ const initData = async () => {
   margin-bottom: 16rpx;
   width: 100%;
   box-sizing: border-box;
+  position: relative; /* 为提示标签添加定位 */
+}
+
+/* 新增：提示标签样式 */
+.prompt-tag {
+  position: absolute;
+  top: 10rpx;
+  right: 10rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 16rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+  color: #fff;
+}
+.same-brand {
+  background-color: #4096ff; /* 蓝色 - 同牌号掺兑 */
+}
+.downgrade {
+  background-color: #fa8c16; /* 橙色 - 降级掺兑 */
 }
 
 .tobacco-info {

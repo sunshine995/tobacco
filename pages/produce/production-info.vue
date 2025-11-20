@@ -223,7 +223,7 @@ const navigateToPositionVerification = async (order) => {
       showToastMessage('用户信息无效', 'error')
       // 默认跳转到岗位验证页面
       uni.navigateTo({
-        url: `/pages/produce/position-verification?id=${1}&batchNo=${'123'}&brand=${encodeURIComponent(order.brand)}&number=${encodeURIComponent(order.number)}`
+        url: `/pages/produce/position-verification?id=${1}&batchNo=${'123'}&brand=${encodeURIComponent(order.brand)}&number=${encodeURIComponent(order.number)}&yield=${encodeURIComponent(order.yield || '')}`
       });
       return
     }
@@ -235,7 +235,7 @@ const navigateToPositionVerification = async (order) => {
       if (res && res.role === 'ADMIN') {
         console.log('用户角色为ADMIN，跳转到所有岗位验证页面')
         uni.navigateTo({
-          url: `/pages/produce/position-verification?id=${order.id}&batchNo=${order.batchNo}&brand=${encodeURIComponent(order.brand)}&number=${encodeURIComponent(order.number)}`
+          url: `/pages/produce/position-verification?id=${order.id}&batchNo=${order.batchNo}&brand=${encodeURIComponent(order.brand)}&number=${encodeURIComponent(order.number)}&yield=${encodeURIComponent(order.yield || '')}`
         })
       } else if (res && res.role === 'USER') {
         try {
@@ -260,7 +260,7 @@ const navigateToPositionVerification = async (order) => {
             console.log('权限验证通过，允许跳转')
             // 使用接口返回的pagePath进行跳转
             uni.navigateTo({
-              url: `${permissionRes.pagePath}?id=${order.id}&batchNo=${order.batchNo}&brand=${encodeURIComponent(order.brand)}&number=${encodeURIComponent(order.number)}`
+              url: `${permissionRes.pagePath}?id=${order.id}&batchNo=${order.batchNo}&brand=${encodeURIComponent(order.brand)}&number=${encodeURIComponent(order.number)}&yield=${encodeURIComponent(order.yield || '')}`
             })
           } else {
             console.warn('权限验证失败或不允许访问:', permissionRes?.reason || '未知原因')

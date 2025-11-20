@@ -434,7 +434,7 @@
               <view class="form-label weight-label">梗料重量（kg）</view>
               <input type="digit" class="form-input" v-model="formData.stemWeight" 
                      placeholder="例：40.50" confirm-type="done" 
-                     @blur="onStemWeightInput"
+                     @input="onStemWeightInput"
                      style="pointer-events: auto; -webkit-user-select: text; user-select: text;" />
             </view>
           </view>
@@ -453,11 +453,7 @@
         </view>
       </view>
 
-      <button type="button" class="submit-btn" id="main-submit-btn" 
-              @click="submitAll" :loading="submitting" :disabled="submitting" v-if="!hasSubmitted">
-        {{ submitting ? '提交中...' : '全部提交' }}
-      </button>
-      
+
       <!-- 三级验证按钮 -->
       <VerifyButton 
         buttonText="三级验证" 
@@ -684,9 +680,11 @@ const toastType = ref('success');
 
 // 梗料重量输入事件处理
 const onStemWeightInput = () => {
-  if (formData.value.stemWeight && formData.value.stemWeight.trim() !== '') {
+  // 确保stemWeight是数字类型
+  const stemWeight = parseFloat(formData.value.stemWeight);
+  if (!isNaN(stemWeight)) {
     // 显示核对提示
-    if(formData.value.stemWeight<40){
+    if(stemWeight < 40){
       showToastMessage(myOrder.value.yield<=2500?myOrder.value.yield+'kg '+myOrder.value.brand+'不少于10kg重量':myOrder.value.yield<=5000?myOrder.value.yield+'kg '+myOrder.value.brand+'不少于20kg重量':myOrder.value.yield+'kg '+myOrder.value.brand+'不少于40kg重量', 'warning');
     }
   }
@@ -743,7 +741,7 @@ onMounted(() => {
   loadLocalSavedData();
   
   // 如果当前myOrder还没有有效的数据，再尝试从全局获取一次
-  if (!myOrder.value.batchNo && !myOrder.value.brand) {
+  if (!myOrder.value.batchNo || !myOrder.value.brand || !myOrder.value.yield) {
     console.log('onMounted: 尝试从全局状态获取数据...');
     getDataFromGlobal();
   }
@@ -835,13 +833,14 @@ onLoad((options) => {
     id: options.id ? decodeURIComponent(options.id) : '',
     batchNo: options.batchNo ? decodeURIComponent(options.batchNo) : '',
     brand: options.brand ? decodeURIComponent(options.brand) : '',
-    number: options.number ? decodeURIComponent(options.number) : options.orderNo ? decodeURIComponent(options.orderNo) : ''
+    number: options.number ? decodeURIComponent(options.number) : options.orderNo ? decodeURIComponent(options.orderNo) : '',
+    yield: options.yield ? decodeURIComponent(options.yield) : ''
   };
   
   console.log('通过URL参数更新后的订单信息:', myOrder.value);
   
   // 如果URL没有参数或参数不完整，尝试从全局状态获取
-  if (!myOrder.value.batchNo || !myOrder.value.brand || !myOrder.value.number) {
+  if (!myOrder.value.batchNo || !myOrder.value.brand || !myOrder.value.number || !myOrder.value.yield) {
     getDataFromGlobal();
   }
   
@@ -1166,7 +1165,7 @@ const loadLocalSavedData = () => {
   }
 };
 
-// 提交开班检查项目到本地
+// 提交开班检查项目到数据库
 const submitStartupSection = async () => {
   // 验证风选皮带状态
   if (!formData.value.beltStatus) {
@@ -1188,6 +1187,25 @@ const submitStartupSection = async () => {
   localSaving.value.startup = true;
   
   try {
+    // 触发图片上传
+    const uploadComponents = [
+      { ref: beltPhotoRef, name: '风选皮带照片' },
+      { ref: startupThreePressureRef, name: '开班三压检查照片' }
+    ];
+    
+    for (const { ref: uploadRef, name } of uploadComponents) {
+      if (uploadRef.value && uploadRef.value.getFiles && uploadRef.value.getFiles().length > 0) {
+        try {
+          await uploadRef.value.triggerUpload();
+        } catch (error) {
+          console.error(`${name}上传失败:`, error);
+          showToastMessage(`${name}上传失败，请重试`, 'error');
+          localSaving.value.startup = false;
+          return;
+        }
+      }
+    }
+    
     // 收集图片URL
     const images = {
       beltPhoto: beltPhotoRef.value?.getAllImageUrls() || [],
@@ -1205,206 +1223,20 @@ const submitStartupSection = async () => {
     if (saveToLocalStorage('startup', data)) {
       localData.value.startup = data;
       localSaveStatus.value.startup = 'success';
-      showToastMessage('开班检查项目已保存到本地');
     } else {
       localSaveStatus.value.startup = 'error';
-      showToastMessage('保存失败，请重试', 'error');
+      showToastMessage('本地保存失败，请重试', 'error');
     }
-  } catch (error) {
-    console.error('保存失败:', error);
-    localSaveStatus.value.startup = 'error';
-    showToastMessage('保存失败，请重试', 'error');
-  } finally {
-    localSaving.value.startup = false;
-  }
-};
-
-// 提交开料前检查项目到本地
-const submitFeedPreSection = async () => {
-  // 验证照片
-  const requiredImages = [
-    { ref: brandBatchRef, name: '牌号与批次号照片' },
-    { ref: moistureRef, name: '水分仪通道照片' },
-    { ref: valveRef, name: '蒸汽阀照片' },
-    { ref: paramRef, name: '参数界面照片' }
-  ];
-  
-  for (const { ref: uploadRef, name } of requiredImages) {
-    if (uploadRef.value && uploadRef.value.getAllFiles && uploadRef.value.getAllFiles().length === 0) {
-      showToastMessage(`请上传${name}`, 'error');
-      return;
-    }
-  }
-  
-  localSaving.value.feedPre = true;
-  
-  try {
-    // 收集图片URL
-    const images = {
-      brandBatch: brandBatchRef.value?.getAllImageUrls() || [],
-      moisture: moistureRef.value?.getAllImageUrls() || [],
-      valve: valveRef.value?.getAllImageUrls() || [],
-      param: paramRef.value?.getAllImageUrls() || []
-    };
-    
-    // 构建保存数据
-    const data = {
-      images: images,
-      savedAt: new Date().toISOString()
-    };
-    
-    // 保存到本地
-    if (saveToLocalStorage('feedPre', data)) {
-      localData.value.feedPre = data;
-      localSaveStatus.value.feedPre = 'success';
-      showToastMessage('开料前检查项目已保存到本地');
-    } else {
-      localSaveStatus.value.feedPre = 'error';
-      showToastMessage('保存失败，请重试', 'error');
-    }
-  } catch (error) {
-    console.error('保存失败:', error);
-    localSaveStatus.value.feedPre = 'error';
-    showToastMessage('保存失败，请重试', 'error');
-  } finally {
-    localSaving.value.feedPre = false;
-  }
-};
-
-// 提交梗签字统计到本地
-const submitStemSignSection = async () => {
-  // 验证重量
-  if (!formData.value.stemWeight.trim()) {
-    showToastMessage('请填写梗料重量', 'error');
-    return;
-  }
-  
-  // 验证照片
-  if (postStemSignRef.value && postStemSignRef.value.getAllFiles && postStemSignRef.value.getAllFiles().length === 0) {
-    showToastMessage('请上传梗签子照片', 'error');
-    return;
-  }
-  
-  localSaving.value.stemSign = true;
-  
-  try {
-    // 收集图片URL
-    const images = {
-      postStemSign: postStemSignRef.value?.getAllImageUrls() || []
-    };
-    
-    // 构建保存数据
-    const data = {
-      stemWeight: formData.value.stemWeight,
-      images: images,
-      savedAt: new Date().toISOString()
-    };
-    
-    // 保存到本地
-    if (saveToLocalStorage('stemSign', data)) {
-      localData.value.stemSign = data;
-      localSaveStatus.value.stemSign = 'success';
-      showToastMessage('梗签字统计已保存到本地');
-    } else {
-      localSaveStatus.value.stemSign = 'error';
-      showToastMessage('保存失败，请重试', 'error');
-    }
-  } catch (error) {
-    console.error('保存失败:', error);
-    localSaveStatus.value.stemSign = 'error';
-    showToastMessage('保存失败，请重试', 'error');
-  } finally {
-    localSaving.value.stemSign = false;
-  }
-};
-
-// 提交全部检查记录到服务器
-const submitAll = async () => {
-  // 检查是否所有部分都已保存到本地
-  if (!localData.value.startup && !localData.value.feedPre && !localData.value.stemSign) {
-    showToastMessage('请先保存各部分数据到本地', 'warning');
-    return;
-  }
-  
-  submitting.value = true;
-  
-  try {
-    // 触发所有图片上传组件的上传操作
-    const uploadComponents = [
-      { ref: beltPhotoRef, name: '风选皮带照片' },
-      { ref: startupThreePressureRef, name: '开班三压检查照片' },
-      { ref: brandBatchRef, name: '牌号与批次号照片' },
-      { ref: moistureRef, name: '水分仪通道照片' },
-      { ref: valveRef, name: '蒸汽阀照片' },
-      { ref: paramRef, name: '参数界面照片' },
-      { ref: postStemSignRef, name: '梗签子照片' }
-    ];
-    
-    // 检查必填照片
-    for (const { ref: uploadRef, name } of uploadComponents) {
-      if (uploadRef.value && uploadRef.value.getFiles && uploadRef.value.getFiles().length === 0) {
-        const requiredChecks = {
-          beltPhotoRef: localData.value.startup,
-          startupThreePressureRef: localData.value.startup,
-          brandBatchRef: localData.value.feedPre,
-          moistureRef: localData.value.feedPre,
-          valveRef: localData.value.feedPre,
-          paramRef: localData.value.feedPre,
-          postStemSignRef: localData.value.stemSign
-        };
-        
-        if (requiredChecks[uploadRef._key]) {
-          showToastMessage(`请上传${name}`, 'error');
-          submitting.value = false;
-          return;
-        }
-      }
-    }
-    
-    // 触发上传
-    for (const { ref: uploadRef, name } of uploadComponents) {
-      if (uploadRef.value && uploadRef.value.getFiles && uploadRef.value.getFiles().length > 0) {
-        try {
-          await uploadRef.value.triggerUpload();
-        } catch (error) {
-          console.error(`${name}上传失败:`, error);
-          showToastMessage(`${name}上传失败，请重试`, 'error');
-          submitting.value = false;
-          return;
-        }
-      }
-    }
-    
-    // 获取所有图片URL（包括已上传的本地图片和外部图片）
-    const allImageUrls = {};
-    
-    // 获取开班检查图片
-    if (localData.value.startup) {
-      allImageUrls.beltPhoto = beltPhotoRef.value?.getAllImageUrls() || [];
-      allImageUrls.startupThreePressure = startupThreePressureRef.value?.getAllImageUrls() || [];
-    }
-    
-    // 获取开料前检查图片
-    if (localData.value.feedPre) {
-      allImageUrls.brandBatch = brandBatchRef.value?.getAllImageUrls() || [];
-      allImageUrls.moisture = moistureRef.value?.getAllImageUrls() || [];
-      allImageUrls.valve = valveRef.value?.getAllImageUrls() || [];
-      allImageUrls.param = paramRef.value?.getAllImageUrls() || [];
-    }
-    
-    // 获取梗签字统计图片
-    if (localData.value.stemSign) {
-      allImageUrls.postStemSign = postStemSignRef.value?.getAllImageUrls() || [];
-    }
-    
-    // 调试信息
-    console.log('收集的图片URLs:', allImageUrls);
     
     // 构建提交数据
     const verificationResult = {
       stemWeight: localData.value.stemSign?.stemWeight ? parseFloat(localData.value.stemSign.stemWeight) : null,
-      beltStatus: localData.value.startup?.beltStatus || null,
-      images: allImageUrls
+      beltStatus: data.beltStatus,
+      images: {
+        ...(localData.value.feedPre?.images || {}),
+        ...(localData.value.stemSign?.images || {}),
+        ...images
+      }
     };
     
     const submitData = {
@@ -1427,46 +1259,211 @@ const submitAll = async () => {
     // 调用API提交数据到服务器
     await submitMaterialCheck(submitData);
     
-    showToastMessage('全部检查记录提交成功！');
-    // 提交成功后设置已提交状态，用于隐藏提交按钮
+    showToastMessage('开班检查项目已上传到数据库');
     hasSubmitted.value = true;
+  } catch (error) {
+    console.error('上传失败:', error);
+    localSaveStatus.value.startup = 'error';
+    showToastMessage('上传失败，请重试', 'error');
+  } finally {
+    localSaving.value.startup = false;
+  }
+};
+
+// 提交开料前检查项目到数据库
+const submitFeedPreSection = async () => {
+  // 验证照片
+  const requiredImages = [
+    { ref: brandBatchRef, name: '牌号与批次号照片' },
+    { ref: moistureRef, name: '水分仪通道照片' },
+    { ref: valveRef, name: '蒸汽阀照片' },
+    { ref: paramRef, name: '参数界面照片' }
+  ];
+  
+  for (const { ref: uploadRef, name } of requiredImages) {
+    if (uploadRef.value && uploadRef.value.getAllFiles && uploadRef.value.getAllFiles().length === 0) {
+      showToastMessage(`请上传${name}`, 'error');
+      return;
+    }
+  }
+  
+  localSaving.value.feedPre = true;
+  
+  try {
+    // 触发图片上传
+    const uploadComponents = requiredImages;
     
-    // 清除本地存储的数据（跨平台实现）
-    if (myOrder.value.batchNo) {
-      try {
-        uni.removeStorageSync(`dryingMachine_${myOrder.value.batchNo}_startup`);
-        uni.removeStorageSync(`dryingMachine_${myOrder.value.batchNo}_feedPre`);
-        uni.removeStorageSync(`dryingMachine_${myOrder.value.batchNo}_stemSign`);
-      } catch (error) {
-        console.error('清除本地数据失败:', error);
+    for (const { ref: uploadRef, name } of uploadComponents) {
+      if (uploadRef.value && uploadRef.value.getFiles && uploadRef.value.getFiles().length > 0) {
+        try {
+          await uploadRef.value.triggerUpload();
+        } catch (error) {
+          console.error(`${name}上传失败:`, error);
+          showToastMessage(`${name}上传失败，请重试`, 'error');
+          localSaving.value.feedPre = false;
+          return;
+        }
       }
     }
     
-    // 重置本地状态
-    localData.value = {
-      startup: null,
-      feedPre: null,
-      stemSign: null
-    };
-    localSaveStatus.value = {
-      startup: '',
-      feedPre: '',
-      stemSign: ''
+    // 收集图片URL
+    const images = {
+      brandBatch: brandBatchRef.value?.getAllImageUrls() || [],
+      moisture: moistureRef.value?.getAllImageUrls() || [],
+      valve: valveRef.value?.getAllImageUrls() || [],
+      param: paramRef.value?.getAllImageUrls() || []
     };
     
-    setTimeout(() => {
-      resetForm();
-      // 返回上一页
-      uni.navigateBack();
-    }, 1500);
+    // 构建保存数据
+    const data = {
+      images: images,
+      savedAt: new Date().toISOString()
+    };
     
+    // 保存到本地
+    if (saveToLocalStorage('feedPre', data)) {
+      localData.value.feedPre = data;
+      localSaveStatus.value.feedPre = 'success';
+    } else {
+      localSaveStatus.value.feedPre = 'error';
+      showToastMessage('本地保存失败，请重试', 'error');
+    }
+    
+    // 构建提交数据
+    const verificationResult = {
+      stemWeight: localData.value.stemSign?.stemWeight ? parseFloat(localData.value.stemSign.stemWeight) : null,
+      beltStatus: localData.value.startup?.beltStatus || null,
+      images: {
+        ...(localData.value.startup?.images || {}),
+        ...(localData.value.stemSign?.images || {}),
+        ...images
+      }
+    };
+    
+    const submitData = {
+      batchId: myOrder.value.batchNo,
+      brand: myOrder.value.brand,
+      segment: "烘丝机",
+      verificationResult: verificationResult,
+      dataCount: 8,
+      operatorId: uni.getStorageSync('userId') || ''
+    };
+    
+    // 确保至少有一个方式获取品牌信息
+    if (!submitData.brand || !submitData.brand.trim()) {
+      showToastMessage('未获取到物料牌号信息，请确认工单信息是否正确', 'error');
+      return;
+    }
+    
+    console.log('提交的表单数据:', submitData);
+    
+    // 调用API提交数据到服务器
+    await submitMaterialCheck(submitData);
+    
+    showToastMessage('开料前检查项目已上传到数据库');
+    hasSubmitted.value = true;
   } catch (error) {
-    console.error('提交失败:', error);
-    showToastMessage('提交失败，请重试', 'error');
+    console.error('上传失败:', error);
+    localSaveStatus.value.feedPre = 'error';
+    showToastMessage('上传失败，请重试', 'error');
   } finally {
-    submitting.value = false;
+    localSaving.value.feedPre = false;
   }
 };
+
+// 提交梗签字统计到数据库
+const submitStemSignSection = async () => {
+  // 验证重量
+  if (!formData.value.stemWeight.trim()) {
+    showToastMessage('请填写梗料重量', 'error');
+    return;
+  }
+  
+  // 验证照片
+  if (postStemSignRef.value && postStemSignRef.value.getAllFiles && postStemSignRef.value.getAllFiles().length === 0) {
+    showToastMessage('请上传梗签子照片', 'error');
+    return;
+  }
+  
+  localSaving.value.stemSign = true;
+  
+  try {
+    // 触发图片上传
+    if (postStemSignRef.value && postStemSignRef.value.getFiles && postStemSignRef.value.getFiles().length > 0) {
+      try {
+        await postStemSignRef.value.triggerUpload();
+      } catch (error) {
+        console.error('梗签子照片上传失败:', error);
+        showToastMessage('梗签子照片上传失败，请重试', 'error');
+        localSaving.value.stemSign = false;
+        return;
+      }
+    }
+    
+    // 收集图片URL
+    const images = {
+      postStemSign: postStemSignRef.value?.getAllImageUrls() || []
+    };
+    
+    // 构建保存数据
+    const data = {
+      stemWeight: formData.value.stemWeight,
+      images: images,
+      savedAt: new Date().toISOString()
+    };
+    
+    // 保存到本地
+    if (saveToLocalStorage('stemSign', data)) {
+      localData.value.stemSign = data;
+      localSaveStatus.value.stemSign = 'success';
+    } else {
+      localSaveStatus.value.stemSign = 'error';
+      showToastMessage('本地保存失败，请重试', 'error');
+    }
+    
+    // 构建提交数据
+    const verificationResult = {
+      stemWeight: parseFloat(formData.value.stemWeight),
+      beltStatus: localData.value.startup?.beltStatus || null,
+      images: {
+        ...(localData.value.startup?.images || {}),
+        ...(localData.value.feedPre?.images || {}),
+        ...images
+      }
+    };
+    
+    const submitData = {
+      batchId: myOrder.value.batchNo,
+      brand: myOrder.value.brand,
+      segment: "烘丝机",
+      verificationResult: verificationResult,
+      dataCount: 8,
+      operatorId: uni.getStorageSync('userId') || ''
+    };
+    
+    // 确保至少有一个方式获取品牌信息
+    if (!submitData.brand || !submitData.brand.trim()) {
+      showToastMessage('未获取到物料牌号信息，请确认工单信息是否正确', 'error');
+      return;
+    }
+    
+    console.log('提交的表单数据:', submitData);
+    
+    // 调用API提交数据到服务器
+    await submitMaterialCheck(submitData);
+    
+    showToastMessage('梗签字统计已上传到数据库');
+    hasSubmitted.value = true;
+  } catch (error) {
+    console.error('上传失败:', error);
+    localSaveStatus.value.stemSign = 'error';
+    showToastMessage('上传失败，请重试', 'error');
+  } finally {
+    localSaving.value.stemSign = false;
+  }
+};
+
+
 
 // 重置表单
 const resetForm = () => {

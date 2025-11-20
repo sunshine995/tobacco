@@ -352,19 +352,20 @@ const getAllFiles = () => {
 
 // ================================
 // ✅ 新增：获取所有图片URL（包括外部和已上传的本地图片）
-// 仅返回已上传成功的服务器URL或外部图片URL，不返回本地blob URL
+// 返回已上传成功的服务器URL、外部图片URL或本地blob URL
 // ================================
 const getAllImageUrls = () => {
   return displayFiles.value
     .map(file => {
-      // 如果是外部图片，使用url；如果是本地图片，必须使用已上传成功的previewUrl
+      // 如果是外部图片，使用url
       if (file.isExternal) {
         return file.url;
       } else {
-        return file.previewUrl; // 只返回已上传成功的服务器URL
+        // 如果是本地图片，优先使用已上传成功的previewUrl，否则使用本地blob URL
+        return file.previewUrl || file.localPreviewUrl;
       }
     })
-    .filter(url => url); // 过滤掉未上传成功的图片
+    .filter(url => url); // 过滤掉无效的图片URL
 };
 
 // 暴露方法

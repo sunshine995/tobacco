@@ -18,8 +18,13 @@
           :max-count="1"
           title="上传图片"
         />
+        
+        <!-- 开班检查提交验证按钮 -->
+        <view class="submit-btn" @click="submitStartCheck">
+          <text>提交验证</text>
+        </view>
       </view>
-<h2 class="group-title">生产验证</h2>
+<h2 class="group-title">开料前检查项目</h2>
         <view class="section-title">
           <text class="required">*</text>
           <text>牌号和批次号</text>
@@ -72,6 +77,11 @@
           class="flavor-remaining-input"
           step="0.01"
         />
+      </view>
+
+      <!-- 开料前检查提交验证按钮 -->
+      <view class="submit-btn" @click="submitBeforeCheck">
+        <text>提交验证</text>
       </view>
 
       <!-- 换牌验证酒精清洗照片 -->
@@ -484,6 +494,225 @@ const submitCheck = async() => {
   }
 };
 
+// 开班检查提交验证
+const submitStartCheck = async() => {
+  try {
+    submitting.value = true;
+    
+    // 如果没有订单信息，尝试从全局状态获取
+    if (!myOrder.value.batchNo && !myOrder.value.brand) {
+      getDataFromGlobal();
+    }
+    
+    // 验证是否有订单信息
+    if (!myOrder.value.batchNo) {
+      uni.showToast({
+        title: '无法获取批次信息，请重试',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    // 验证三压检查上传组件是否初始化
+    if (!threePressureRef.value) {
+      throw new Error('三压检查上传组件未初始化');
+    }
+    
+    // 验证三压检查是否上传了图片
+    const files = threePressureRef.value.getFiles();
+    if (files.length === 0) {
+      uni.showToast({
+        title: '三压检查请上传图片',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    // 触发三压检查图片上传
+    await threePressureRef.value.triggerUpload();
+    
+    // 获取上传成功的图片URL
+    const threePressureUrls = threePressureRef.value.getUploadedUrls();
+    
+    // 验证图片是否上传成功
+    if (threePressureUrls.length === 0) {
+      uni.showToast({
+        title: '三压检查图片上传失败，请重试',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    // 构造提交数据
+    const submitData = {
+      batchId: myOrder.value.batchNo,
+      brand: myOrder.value.brand,
+      segment: "加香机",
+      verificationResult: {
+        status: 'pending',
+        images: {
+          threePressure: threePressureUrls[0]
+        }
+      },
+      checkType: 'startCheck', // 标记为开班检查
+      operatorId: uni.getStorageSync('userId'),
+      verified_time: formatDate(new Date(), 'yyyy-MM-dd HH:mm:ss')
+    };
+    
+    console.log('提交开班检查数据:', submitData);
+    
+    // 调用提交验证的API
+    await submitMaterialCheck(submitData);
+    
+    uni.showToast({
+      title: '开班检查提交成功',
+      icon: 'success'
+    });
+    
+    // 更新验证图片数据
+    if (threePressureUrls[0]) {
+      verificationImages.value.threePressure = threePressureUrls[0];
+    }
+    
+    // 重新加载数据以显示最新上传的图片
+    setTimeout(() => {
+      loadExistingCheckRecord(submitData.batchId);
+    }, 1500);
+    
+  } catch (error) {
+    console.error('开班检查提交失败:', error);
+    uni.showToast({
+      title: error.message || '提交失败，请重试',
+      icon: 'none'
+    });
+  } finally {
+    submitting.value = false;
+  }
+};
+
+// 开料前检查提交验证
+const submitBeforeCheck = async() => {
+  try {
+    submitting.value = true;
+    
+    // 如果没有订单信息，尝试从全局状态获取
+    if (!myOrder.value.batchNo && !myOrder.value.brand) {
+      getDataFromGlobal();
+    }
+    
+    // 验证是否有订单信息
+    if (!myOrder.value.batchNo) {
+      uni.showToast({
+        title: '无法获取批次信息，请重试',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    // 验证开料前检查相关上传组件是否初始化
+    const beforeCheckRefs = [brandBatchRef, interfaceVerifyRef, moistureChannelRef];
+    const refNames = ['牌号和批次号', '界面验证', '水分仪通道'];
+    
+    for (let i = 0; i < beforeCheckRefs.length; i++) {
+      if (!beforeCheckRefs[i].value) {
+        throw new Error(`${refNames[i]}上传组件未初始化`);
+      }
+    }
+    
+    // 验证组件是否都上传了图片
+    for (let i = 0; i < beforeCheckRefs.length; i++) {
+      const files = beforeCheckRefs[i].value.getFiles();
+      if (files.length === 0) {
+        uni.showToast({
+          title: `${refNames[i]}请上传图片`,
+          icon: 'none'
+        });
+        return;
+      }
+    }
+    
+    // 验证香料剩余量是否输入
+    if (!flavorRemaining.value) {
+      uni.showToast({
+        title: '请输入香料剩余量',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    // 执行开料前检查相关图片上传
+    await Promise.all(beforeCheckRefs.map(ref => ref.value.triggerUpload()));
+    
+    // 获取所有上传成功的图片URL
+    const brandBatchUrls = brandBatchRef.value.getUploadedUrls();
+    const interfaceVerifyUrls = interfaceVerifyRef.value.getUploadedUrls();
+    const moistureChannelUrls = moistureChannelRef.value.getUploadedUrls();
+    
+    // 验证所有图片是否上传成功
+    const allUrls = [brandBatchUrls, interfaceVerifyUrls, moistureChannelUrls];
+    
+    for (let i = 0; i < allUrls.length; i++) {
+      if (allUrls[i].length === 0) {
+        uni.showToast({
+          title: `${refNames[i]}图片上传失败，请重试`,
+          icon: 'none'
+        });
+        return;
+      }
+    }
+    
+    // 构造提交数据
+    const submitData = {
+      batchId: myOrder.value.batchNo,
+      brand: myOrder.value.brand,
+      segment: "加香机",
+      verificationResult: {
+        status: 'pending',
+        flavorRemaining: parseFloat(flavorRemaining.value) || 0,
+        images: {
+          brandBatch: brandBatchUrls[0],
+          interfaceVerify: interfaceVerifyUrls[0],
+          moistureChannel: moistureChannelUrls[0]
+        }
+      },
+      checkType: 'beforeCheck', // 标记为开料前检查
+      operatorId: uni.getStorageSync('userId'),
+      verified_time: formatDate(new Date(), 'yyyy-MM-dd HH:mm:ss')
+    };
+    
+    console.log('提交开料前检查数据:', submitData);
+    
+    // 调用提交验证的API
+    await submitMaterialCheck(submitData);
+    
+    uni.showToast({
+      title: '开料前检查提交成功',
+      icon: 'success'
+    });
+    
+    // 更新验证图片数据
+    verificationImages.value = {
+      brandBatch: brandBatchUrls[0],
+      interfaceVerify: interfaceVerifyUrls[0],
+      moistureChannel: moistureChannelUrls[0]
+    };
+    
+    // 重新加载数据以显示最新上传的图片
+    setTimeout(() => {
+      loadExistingCheckRecord(submitData.batchId);
+    }, 1500);
+    
+  } catch (error) {
+    console.error('开料前检查提交失败:', error);
+    uni.showToast({
+      title: error.message || '提交失败，请重试',
+      icon: 'none'
+    });
+  } finally {
+    submitting.value = false;
+  }
+};
+
 // 验证成功回调
 const handleVerifySuccess = (data) => {
   console.log('验证成功:', data);
@@ -509,8 +738,32 @@ const handleValidate = (data) => {
 </script>
 
 <style scoped>
+/* 页面样式 */
 .page {
   padding: 20rpx;
+  background-color: #f5f5f5;
+  min-height: 100vh;
+}
+
+/* 提交按钮样式 */
+.submit-btn {
+  margin: 30rpx auto;
+  width: 500rpx;
+  height: 88rpx;
+  background-color: #007aff;
+  border-radius: 44rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-size: 32rpx;
+  font-weight: bold;
+  box-shadow: 0 4rpx 8rpx rgba(0, 0, 0, 0.1);
+}
+
+.submit-btn:active {
+  background-color: #0056b3;
+  transform: scale(0.98);
 }
 
 .task-list-container {
