@@ -7,7 +7,6 @@
     
     <!-- 页面内容 -->
     <view class="content-section">
-  
       <!-- 掺兑记录区域 -->
       <view v-if="isBlendCompleted" class="completed-section">
         <view class="completed-icon">✓</view>
@@ -24,131 +23,147 @@
       <view v-else>
         <!-- 表单区域 -->
         <view class="form-section">
-          <!-- 牌号选择 -->
-          <view class="form-group">
-            <view class="form-label">
-              <text class="label-text">选择牌号</text>
-              <text class="required">*</text>
-            </view>
-            <view class="form-control" @click="showBrandPicker = true">
-              <text :class="['placeholder', blendForm.brandName ? 'selected' : '']">
-                {{ blendForm.brandName || '请选择牌号' }}
-              </text>
-              <text class="dropdown-icon">▼</text>
-            </view>
-            <text class="form-hint" v-if="selectedBrandStock > 0">
-              当前库存: {{ selectedBrandStock }}袋
-            </text>
-          </view>
-
-          <!-- 批次选择 -->
-          <view class="form-group" v-if="blendForm.brandId">
-            <view class="form-label">
-              <text class="label-text">选择批次</text>
-              <text class="required">*</text>
-            </view>
-            <view class="form-control" @click="showBatchPicker = true">
-              <text :class="['placeholder', blendForm.batchId ? 'selected' : '']">
-                {{ blendForm.batchId || '请选择批次' }}
-              </text>
-              <text class="dropdown-icon">▼</text>
+          <!-- 多个掺兑表单 -->
+          <view v-for="(form, index) in blendForms" :key="index" class="form-item">
+            <!-- 表单标题 -->
+            <view class="form-item-header">
+              <text class="form-item-title">掺兑信息 {{ index + 1 }}</text>
+              <!-- 删除按钮（保留最后一个） -->
+              <view v-if="blendForms.length > 1" class="delete-btn" @click="removeBlendForm(index)">
+                <text class="delete-btn-text">删除</text>
+              </view>
             </view>
             
-            <!-- 批次信息预览 -->
-            <view v-if="selectedBatchInfo" class="batch-preview">
-              <view class="batch-info-row">
-                <text class="info-label">接收日期:</text>
-                <text class="info-value">{{ selectedBatchInfo.receiveDate }}</text>
+            <!-- 牌号选择（自动获取） -->
+            <view class="form-group" style="display: none;">
+              <view class="form-label">
+                <text class="label-text">选择牌号</text>
+                <text class="required">*</text>
               </view>
-              <view class="batch-info-row">
-                <text class="info-label">剩余数量:</text>
-                <text class="info-value">{{ selectedBatchInfo.remainingBags }}袋 / {{ selectedBatchInfo.remainingWeight }}kg</text>
-              </view>
-              <view class="batch-info-row">
-                <text class="info-label">状态:</text>
-                <text :class="['info-value', getStatusClass(selectedBatchInfo.status)]">
-                  {{ getStatusText(selectedBatchInfo.status, selectedBatchInfo.daysRemaining) }}
+              <view class="form-control">
+                <text :class="['placeholder', form.brandName ? 'selected' : '']">
+                  {{ form.brandName || '自动获取中...' }}
                 </text>
               </view>
             </view>
-          </view>
 
-          <!-- 掺兑数量 -->
-          <view class="form-group">
-            <view class="form-label">
-              <text class="label-text">掺兑数量</text>
-              <text class="required">*</text>
-            </view>
-            <view class="quantity-inputs">
-              <view class="input-group">
-                <input 
-                  v-model="blendForm.bags" 
-                  type="number" 
-                  class="quantity-input" 
-                  placeholder="0"
-                  @blur="validateBags"
-                />
-                <text class="input-unit">袋</text>
+            <!-- 批次选择 -->
+            <view class="form-group">
+              <view class="form-label">
+                <text class="label-text">选择批次</text>
+                <text class="required">*</text>
               </view>
-              <view class="input-group">
-                <input 
-                  v-model="blendForm.weight" 
-                  type="number" 
-                  class="quantity-input" 
-                  placeholder="0.00"
-                  @blur="validateWeight"
-                />
-                <text class="input-unit">公斤</text>
+              <view class="form-control" @click="form.showBatchPicker = true">
+                <text :class="['placeholder', form.batchId ? 'selected' : '']">
+                  {{ form.batchId || '请选择批次' }}
+                </text>
+                <text class="dropdown-icon">▼</text>
+              </view>
+              
+              <!-- 批次信息预览 -->
+              <view v-if="form.batchInfo" class="batch-preview">
+                <view class="batch-info-row">
+                  <text class="info-label">接收日期:</text>
+                  <text class="info-value">{{ form.batchInfo.receiveDate }}</text>
+                </view>
+                <view class="batch-info-row">
+                  <text class="info-label">剩余数量:</text>
+                  <text class="info-value">{{ form.batchInfo.remainingBags }}袋 / {{ form.batchInfo.remainingWeight }}kg</text>
+                </view>
+                <view class="batch-info-row">
+                  <text class="info-label">状态:</text>
+                  <text :class="['info-value', getStatusClass(form.batchInfo.status)]">
+                    {{ getStatusText(form.batchInfo.status, form.batchInfo.daysRemaining) }}
+                  </text>
+                </view>
               </view>
             </view>
+
+            <!-- 掺兑数量 -->
+            <view class="form-group">
+              <view class="form-label">
+                <text class="label-text">掺兑数量</text>
+                <text class="required">*</text>
+              </view>
+              <view class="quantity-inputs">
+                <view class="input-group">
+                  <input 
+                    v-model="form.bags" 
+                    type="number" 
+                    class="quantity-input" 
+                    placeholder="0"
+                    @blur="validateBags(index)"
+                  />
+                  <text class="input-unit">袋</text>
+                </view>
+                <view class="input-group">
+                  <input 
+                    v-model="form.weight" 
+                    type="number" 
+                    class="quantity-input" 
+                    placeholder="0.00"
+                    @blur="validateWeight(index)"
+                  />
+                  <text class="input-unit">公斤</text>
+                </view>
+              </view>
             
-            <!-- 数量验证提示 -->
-            <view v-if="quantityError" class="error-message">
-              <text>{{ quantityError }}</text>
-            </view>
-            
-            <!-- 剩余量提示 -->
-            <view v-if="selectedBatchInfo" class="remaining-hint">
-              <text>剩余: {{ selectedBatchInfo.remainingBags }}袋 / {{ selectedBatchInfo.remainingWeight }}kg</text>
-            </view>
-          </view>
-
-          <!-- 班次选择 -->
-          <view class="form-group">
-            <view class="form-label">
-              <text class="label-text">选择班次</text>
-              <text class="required">*</text>
-            </view>
-            <view class="shift-options">
-              <view 
-                v-for="shift in shiftOptions" 
-                :key="shift.value"
-                :class="['shift-option', blendForm.shift === shift.value ? 'selected' : '']"
-                @click="blendForm.shift = shift.value"
-              >
-                <text class="shift-icon">{{ shift.icon }}</text>
-                <text class="shift-text">{{ shift.label }}</text>
-                <text class="shift-time">{{ shift.time }}</text>
+              <!-- 数量验证提示 -->
+              <view v-if="quantityErrors[index]" class="error-message">
+                <text>{{ quantityErrors[index] }}</text>
               </view>
-            </view>
-          </view>
-
-          <!-- 备注信息 -->
-          <view class="form-group">
-            <view class="form-label">
-              <text class="label-text">备注信息</text>
-            </view>
-            <textarea 
-              v-model="blendForm.notes" 
-              class="notes-textarea" 
-              placeholder="可在此输入掺兑相关备注信息..."
-              maxlength="200"
-            />
-            <view class="notes-counter">
-              <text>{{ blendForm.notes.length }}/200</text>
+            
+              <!-- 剩余量提示 -->
+              <view v-if="form.batchInfo" class="remaining-hint">
+                <text>剩余: {{ form.batchInfo.remainingBags }}袋 / {{ form.batchInfo.remainingWeight }}kg</text>
+              </view>
             </view>
           </view>
         </view>
+<!-- 添加掺兑信息按钮 -->
+        <view class="add-blend-section">
+          <view class="btn btn-add" @click="addBlendForm">
+            <text class="btn-icon">+</text>
+            <text>添加掺兑信息</text>
+          </view>
+        </view>
+        <!-- 班次选择（全局共用） -->
+        <view class="form-group global-group">
+          <view class="form-label">
+            <text class="label-text">选择班次</text>
+            <text class="required">*</text>
+          </view>
+          <view class="shift-options">
+            <view 
+              v-for="shift in shiftOptions" 
+              :key="shift.value"
+              :class="['shift-option', globalShift === shift.value ? 'selected' : '']"
+              @click="globalShift = shift.value"
+            >
+              <text class="shift-icon">{{ shift.icon }}</text>
+              <text class="shift-text">{{ shift.label }}</text>
+              <text class="shift-time">{{ shift.time }}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 备注信息（全局共用） -->
+        <view class="form-group global-group">
+          <view class="form-label">
+            <text class="label-text">备注信息</text>
+          </view>
+          <textarea 
+            v-model="globalNotes" 
+            class="notes-textarea" 
+            placeholder="可在此输入掺兑相关备注信息..."
+            maxlength="200"
+          ></textarea>
+          <view class="notes-counter">
+            <text>{{ globalNotes.length }}/200</text>
+          </view>
+        </view>
+
+        
 
         <!-- 操作按钮 -->
         <view class="action-buttons">
@@ -164,57 +179,20 @@
         </view>
       </view>
 
-        <!-- 牌号选择器 -->
-        <view v-if="showBrandPicker" class="modal-overlay">
-          <view class="modal-content brand-picker-modal">
-            <view class="modal-header">
-              <text class="modal-title">选择牌号</text>
-              <text class="modal-close" @click="showBrandPicker = false">×</text>
-            </view>
-            <view class="search-box">
-              <input 
-                v-model="brandSearch" 
-                class="search-input" 
-                placeholder="搜索牌号..."
-              />
-            </view>
-            <scroll-view class="brand-picker-list" scroll-y="true">
-              <view 
-                v-for="brand in filteredBrands" 
-                :key="brand.batchNumber"
-                :class="['brand-picker-item', blendForm.brandId === brand.batchNumber ? 'selected' : '']"
-                @click="selectBrand(brand)"
-              >
-                <view class="brand-info">
-                  <text class="brand-name">{{ brand.gradeName }}</text>
-                  <text class="brand-stock">库存: {{ getBrandStock(brand.brandId) }}袋</text>
-                </view>
-                <view class="brand-status">
-                  <text v-if="getBrandStock(brand.brandId) > 0" class="in-stock">有库存</text>
-                  <text v-else class="out-of-stock">无库存</text>
-                </view>
-              </view>
-              
-              <view v-if="filteredBrands.length === 0" class="empty-state">
-                <text class="empty-text">未找到相关牌号</text>
-              </view>
-            </scroll-view>
-          </view>
-        </view>
-
-        <!-- 批次选择器 -->
-        <view v-if="showBatchPicker" class="modal-overlay">
+      <!-- 批次选择器 -->
+      <view v-for="(form, index) in blendForms" :key="index">
+        <view v-if="form.showBatchPicker" class="modal-overlay">
           <view class="modal-content batch-picker-modal">
             <view class="modal-header">
-              <text class="modal-title">选择批次 - {{ blendForm.brandName }}</text>
-              <text class="modal-close" @click="showBatchPicker = false">×</text>
+              <text class="modal-title">选择批次 - {{ form.brandName }}</text>
+              <text class="modal-close" @click="form.showBatchPicker = false">×</text>
             </view>
             <scroll-view class="batch-picker-list" scroll-y="true">
               <view 
-                v-for="batch in availableBatches" 
+                v-for="batch in getAvailableBatches(form)" 
                 :key="batch.id"
                 :class="['batch-picker-item', getStatusClass(batch.status)]"
-                @click="selectBatch(batch)"
+                @click="selectBatch(batch, index)"
               >
                 <view class="batch-main">
                   <text class="batch-id">{{ batch.batchId }}</text>
@@ -228,7 +206,7 @@
                 </view>
               </view>
               
-              <view v-if="availableBatches.length === 0" class="empty-state">
+              <view v-if="getAvailableBatches(form).length === 0" class="empty-state">
                 <text class="empty-text">该牌号下暂无可用批次</text>
               </view>
             </scroll-view>
@@ -236,7 +214,7 @@
         </view>
       </view>
     </view>
-
+  </view>
 </template>
 
 <script setup>
@@ -244,8 +222,7 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import WorkOrderInfoCard from '@/components/orderInfo.vue';
 import { getTobaccoAll } from '@/api/production';
-import { selectdottle, saveDottleInventory, updateDottleInventory } from '@/api/from'
-
+import { selectdottle, saveDottleInventory, updateDottleInventory } from '@/api/from';
 
 // 订单信息响应式对象
 const myOrder = ref({
@@ -310,10 +287,12 @@ const initBlendData = async () => {
       });
       
       brands.value = uniqueBrands;
+      return Promise.resolve();
     } else {
       batches.value = [];
       brands.value = [];
       console.error('API返回的批次数据格式错误:', dottleList);
+      return Promise.resolve();
     }
   } catch (error) {
     console.error('初始化掺兑数据失败:', error);
@@ -321,6 +300,7 @@ const initBlendData = async () => {
       title: '数据加载失败',
       icon: 'none'
     });
+    return Promise.reject(error);
   }
 };
 
@@ -344,29 +324,45 @@ onLoad((options) => {
   }
   
   // 初始化掺兑记录数据
-  initBlendData();
+  initBlendData().then(() => {
+    // 数据加载完成后自动选择当前工单的牌号
+    if (myOrder.value.brand && brands.value.length > 0) {
+      const defaultBrand = brands.value.find(brand => brand.gradeName === myOrder.value.brand);
+      if (defaultBrand) {
+        selectBrandForAllForms(defaultBrand);
+        console.log('自动选择当前工单的牌号:', defaultBrand.gradeName);
+      } else {
+        console.log('未找到匹配的牌号:', myOrder.value.brand);
+        uni.showToast({
+          title: '未找到匹配的牌号信息',
+          icon: 'none'
+        });
+      }
+    }
+  });
 });
 
 // 掺兑记录表单相关逻辑
 // 完成状态
 const isBlendCompleted = ref(false);
 
-// 表单数据
-const blendForm = reactive({
+// 全局共用字段（班次和备注只需填写一次）
+const globalShift = ref('白班'); // 全局班次，所有掺兑记录共用
+const globalNotes = ref('');     // 全局备注，所有掺兑记录共用
+
+// 表单数据 - 数组支持多个掺兑记录
+const blendForms = ref([{
   brandId: null,
   brandName: '',
   batchId: null,
   batchInfo: null,
   bags: '',
   weight: '',
-  shift: '白班',
-  notes: ''
-});
+  showBatchPicker: false
+}]);
 
-// 显示状态
-const showBrandPicker = ref(false);
-const showBatchPicker = ref(false);
-const brandSearch = ref('');
+// 数量错误信息 - 数组对应多个表单
+const quantityErrors = ref(['']);
 
 // 获取完成状态的存储键
 const getCompletedStorageKey = () => {
@@ -387,119 +383,152 @@ const batches = ref([]);
 
 // 班次选项
 const shiftOptions = [
-  { value: '白班', label: '白班', icon: '☀️', time: '08:00-16:00' },
-  { value: '中班', label: '中班', icon: '🌙', time: '16:00-24:00' },
-  { value: '夜班', label: '夜班', icon: '🌙', time: '00:00-08:00' }
+  { value: '白班', label: '白班', icon: '☀️', time: '08:00-16:20' },
+  { value: '中班', label: '中班', icon: '🌙', time: '16:20-00:50' },
+  { value: '夜班', label: '夜班', icon: '🌙', time: '00:50-08:00' }
 ];
 
-// 验证错误
-const quantityError = ref('');
-
-// 计算属性
+// 计算属性：表单是否验证通过
 const isFormValid = computed(() => {
-  return blendForm.brandId && 
-         blendForm.batchId && 
-         blendForm.bags && 
-         blendForm.weight && 
-         blendForm.shift &&
-         !quantityError.value;
-});
-
-const selectedBrandStock = computed(() => {
-  if (!blendForm.brandId) return 0;
-  return getBrandStock(blendForm.brandId);
-});
-
-const selectedBatchInfo = computed(() => {
-  return blendForm.batchInfo;
-});
-
-const filteredBrands = computed(() => {
-  if (!brandSearch.value) {
-    return brands.value;
+  // 验证所有掺兑表单都填写完整
+  for (let i = 0; i < blendForms.value.length; i++) {
+    const form = blendForms.value[i];
+    if (!form.brandId || 
+        !form.batchId || 
+        !form.bags || 
+        !form.weight ||
+        quantityErrors.value[i]) {
+      return false;
+    }
   }
-  return brands.value.filter(brand => 
-    brand.gradeName.includes(brandSearch.value)
-  );
+  // 验证全局班次已选择（备注可选）
+  return !!globalShift.value;
 });
 
-const availableBatches = computed(() => {
-  if (!blendForm.brandId) return [];
+// 获取指定牌号的库存总量
+const selectedBrandStock = computed(() => {
+  if (blendForms.value.length === 0 || !blendForms.value[0].brandId) return 0;
+  return getBrandStock(blendForms.value[0].brandId);
+});
+
+// 获取可用批次（按牌号筛选，且排除已在其他表单中选择的批次）
+const getAvailableBatches = (form) => {
+  if (!form.brandId) return [];
+  
+  // 获取当前表单在数组中的索引
+  const currentIndex = blendForms.value.indexOf(form);
+  
   return batches.value
     .filter(batch => 
-      batch.brandId === blendForm.brandId && 
-      batch.remainingBags > 0
+      batch.brandId === form.brandId && 
+      batch.remainingBags > 0 && 
+      // 排除已在其他表单中选择的批次，但允许当前表单保持已选择的批次
+      !blendForms.value.some((f, idx) => 
+        idx !== currentIndex && f.batchId === batch.batchId
+      )
     )
     .sort((a, b) => new Date(a.receiveDate) - new Date(b.receiveDate));
-});
+};
 
 // 方法
 const goBack = () => {
   uni.navigateBack();
 };
 
-const selectBrand = (brand) => {
-  blendForm.brandId = brand.brandId;
-  blendForm.brandName = brand.gradeName;
-  blendForm.batchId = null;
-  blendForm.batchInfo = null;
-  showBrandPicker.value = false;
-  brandSearch.value = '';
+// 自动选择牌号（应用到所有表单）
+const selectBrandForAllForms = (brand) => {
+  blendForms.value.forEach(form => {
+    form.brandId = brand.brandId;
+    form.brandName = brand.gradeName;
+    form.batchId = null;
+    form.batchInfo = null;
+  });
 };
 
-const selectBatch = (batch) => {
-  blendForm.batchId = batch.batchId;
-  blendForm.batchInfo = batch;
-  showBatchPicker.value = false;
+// 选择批次（对应单个表单）
+const selectBatch = (batch, index) => {
+  blendForms.value[index].batchId = batch.batchId;
+  blendForms.value[index].batchInfo = batch;
+  blendForms.value[index].showBatchPicker = false;
   
   // 自动填充建议数量
-  if (!blendForm.bags && batch.remainingBags > 0) {
-    blendForm.bags = Math.min(10, batch.remainingBags).toString();
+  if (!blendForms.value[index].bags && batch.remainingBags > 0) {
+    blendForms.value[index].bags = Math.min(10, batch.remainingBags).toString();
   }
-  if (!blendForm.weight && batch.remainingWeight > 0) {
-    blendForm.weight = Math.min(50, batch.remainingWeight).toFixed(2);
+  if (!blendForms.value[index].weight && batch.remainingWeight > 0) {
+    blendForms.value[index].weight = Math.min(50, batch.remainingWeight).toFixed(2);
   }
 };
 
+// 添加掺兑表单
+const addBlendForm = () => {
+  blendForms.value.push({
+    brandId: blendForms.value[0].brandId, // 继承第一个表单的牌号
+    brandName: blendForms.value[0].brandName,
+    batchId: null,
+    batchInfo: null,
+    bags: '',
+    weight: '',
+    showBatchPicker: false
+  });
+  
+  // 为新表单添加错误信息字段
+  quantityErrors.value.push('');
+};
+
+// 移除掺兑表单
+const removeBlendForm = (index) => {
+  if (blendForms.value.length > 1) {
+    blendForms.value.splice(index, 1);
+    quantityErrors.value.splice(index, 1);
+  }
+};
+
+// 获取指定牌号的库存总量
 const getBrandStock = (brandId) => {
   const brandBatches = batches.value.filter(batch => batch.brandId === brandId);
   return brandBatches.reduce((total, batch) => total + batch.remainingBags, 0);
 };
 
-const validateBags = () => {
-  if (!blendForm.bags) return;
+// 验证袋数输入
+const validateBags = (index) => {
+  const form = blendForms.value[index];
+  if (!form.bags) return;
   
-  const bags = parseInt(blendForm.bags);
+  const bags = parseInt(form.bags);
   if (isNaN(bags) || bags <= 0) {
-    quantityError.value = '袋数必须大于0';
+    quantityErrors.value[index] = '袋数必须大于0';
     return;
   }
   
-  if (blendForm.batchInfo && bags > blendForm.batchInfo.remainingBags) {
-    quantityError.value = `袋数不能超过剩余${blendForm.batchInfo.remainingBags}袋`;
+  if (form.batchInfo && bags > form.batchInfo.remainingBags) {
+    quantityErrors.value[index] = `袋数不能超过剩余${form.batchInfo.remainingBags}袋`;
     return;
   }
   
-  quantityError.value = '';
+  quantityErrors.value[index] = '';
 };
 
-const validateWeight = () => {
-  if (!blendForm.weight) return;
+// 验证重量输入
+const validateWeight = (index) => {
+  const form = blendForms.value[index];
+  if (!form.weight) return;
   
-  const weight = parseFloat(blendForm.weight);
+  const weight = parseFloat(form.weight);
   if (isNaN(weight) || weight <= 0) {
-    quantityError.value = '重量必须大于0';
+    quantityErrors.value[index] = '重量必须大于0';
     return;
   }
   
-  if (blendForm.batchInfo && weight > blendForm.batchInfo.remainingWeight) {
-    quantityError.value = `重量不能超过剩余${blendForm.batchInfo.remainingWeight}kg`;
+  if (form.batchInfo && weight > form.batchInfo.remainingWeight) {
+    quantityErrors.value[index] = `重量不能超过剩余${form.batchInfo.remainingWeight}kg`;
     return;
   }
   
-  quantityError.value = '';
+  quantityErrors.value[index] = '';
 };
 
+// 获取状态样式类
 const getStatusClass = (status) => {
   switch(status) {
     case 'normal': return 'status-normal';
@@ -509,6 +538,7 @@ const getStatusClass = (status) => {
   }
 };
 
+// 获取状态文本
 const getStatusText = (status, daysRemaining) => {
   switch(status) {
     case 'normal': return '正常';
@@ -518,6 +548,7 @@ const getStatusText = (status, daysRemaining) => {
   }
 };
 
+// 提交表单（所有掺兑记录共用同一个班次和备注）
 const submitForm = async () => {
   if (!isFormValid.value) {
     uni.showToast({
@@ -527,50 +558,43 @@ const submitForm = async () => {
     return;
   }
   
-  // 验证数量
-  validateBags();
-  validateWeight();
-  if (quantityError.value) {
-    return;
-  }
-  
   try {
-    // 创建掺兑记录（关联当前工单信息）
-    const blendRecord = {
-      orderId: myOrder.value.id, // 关联工单ID
-      orderBatchNo: myOrder.value.batchNo, // 关联工单批次号
-      batchId: blendForm.batchId,
-      brandName: blendForm.brandName,
-      bagsUsed: parseInt(blendForm.bags),
-      weightUsed: parseFloat(blendForm.weight),
-      shiftType: blendForm.shift,
-      notes: blendForm.notes,
-      operationTime: new Date().toISOString(),
-      operator: uni.getStorageSync('userInfo')?.name || '未知操作员'
-    };
-      
-    // 调用API更新库存
-    const inventoryUpdateResult = await updateDottleInventory({
-      batchId: blendForm.batchId,
-      usedBags: parseInt(blendForm.bags),
-      usedWeight: parseFloat(blendForm.weight)
-    });
-    console.log('更新库存结果:', inventoryUpdateResult);
+    // 遍历所有掺兑表单，批量提交
+    for (const form of blendForms.value) {
+      // 创建掺兑记录（关联工单信息，共用全局班次和备注）
+      const blendRecord = {
+        orderId: myOrder.value.id,         // 关联工单ID
+        orderBatchNo: myOrder.value.batchNo, // 关联工单批次号
+        batchId: form.batchId,
+        brandName: form.brandName,
+        bagsUsed: parseInt(form.bags),
+        weightUsed: parseFloat(form.weight),
+        shiftType: globalShift.value,      // 全局共用班次
+        notes: globalNotes.value,          // 全局共用备注
+        operationTime: new Date().toISOString(),
+        operator: uni.getStorageSync('userInfo')?.name || '未知操作员'
+      };
+       
+      // 更新库存
+      const inventoryUpdateResult = await updateDottleInventory({
+        batchId: form.batchId,
+        usedBags: parseInt(form.bags),
+        usedWeight: parseFloat(form.weight)
+      });
+      console.log('更新库存结果:', inventoryUpdateResult);
+    }
     
     // 设置完成状态并保存到本地存储
-    console.log('设置完成状态');
     isBlendCompleted.value = true;
     const completedKey = getCompletedStorageKey();
-    console.log('保存完成状态到本地存储，键:', completedKey);
     uni.setStorageSync(completedKey, true);
-    console.log('本地存储保存成功，当前完成状态:', isBlendCompleted.value);
     
     uni.showToast({
       title: '掺兑记录保存成功，库存已更新',
       icon: 'success'
     });
     
-    // 返回上一页
+    // 延迟返回上一页
     setTimeout(() => {
       uni.navigateBack();
     }, 1500);
@@ -586,7 +610,7 @@ const submitForm = async () => {
 </script>
 
 <style scoped>
-/* 原丝库页面样式 */
+/* 基础样式 */
 .container {
   padding: 20rpx;
   background-color: #f5f5f5;
@@ -632,6 +656,7 @@ const submitForm = async () => {
   line-height: 1.5;
 }
 
+/* 顶部卡片 */
 .header-card {
   background-color: #fff;
   border-radius: 16rpx;
@@ -640,6 +665,7 @@ const submitForm = async () => {
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
 }
 
+/* 内容区域 */
 .content-section {
   background-color: #fff;
   border-radius: 16rpx;
@@ -647,74 +673,53 @@ const submitForm = async () => {
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
 }
 
-.page-title {
-  font-size: 36rpx;
-  font-weight: 600;
-  color: #333;
-  text-align: center;
-  display: block;
+/* 表单区域 */
+.form-section {
+  margin-bottom: 40rpx;
+}
+
+.form-item {
+  background-color: #f9f9f9;
+  border-radius: 16rpx;
+  padding: 30rpx;
   margin-bottom: 30rpx;
 }
 
-/* 新增掺兑记录样式 */
-.add-blend-container {
-  padding: 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  min-height: 100vh;
-  border-radius: 20rpx;
-  overflow: hidden;
-  margin-top: 30rpx;
-}
-
-/* 头部样式 */
-.header {
+.form-item-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 60rpx 30rpx 30rpx;
-  background: transparent;
+  margin-bottom: 30rpx;
 }
 
-.nav-back {
-  display: flex;
-  align-items: center;
-  padding: 15rpx 25rpx;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 25rpx;
-  backdrop-filter: blur(10px);
-}
-
-.back-icon {
+.form-item-title {
   font-size: 32rpx;
-  color: white;
-  margin-right: 10rpx;
+  font-weight: 600;
+  color: #333;
 }
 
-.back-text {
+.delete-btn {
+  color: #ff4757;
   font-size: 28rpx;
-  color: white;
+  padding: 8rpx 16rpx;
+  background-color: #ffebee;
+  border-radius: 8rpx;
 }
 
-.title {
-  font-size: 36rpx;
-  font-weight: bold;
-  color: white;
+/* 全局共用表单组样式 */
+.global-group {
+  background-color: #f0f8fb;
+  padding: 30rpx;
+  border-radius: 16rpx;
+  margin-bottom: 40rpx;
+  border: 2rpx solid #e3f2fd;
 }
 
-.header-placeholder {
-  width: 120rpx;
+.global-group .form-label {
+  margin-bottom: 25rpx;
 }
 
-/* 表单区域 */
-.form-section {
-  background: white;
-  border-radius: 40rpx 40rpx 0 0;
-  margin-top: 30rpx;
-  padding: 50rpx 40rpx;
-  min-height: calc(100vh - 200rpx);
-  box-shadow: 0 -10rpx 30rpx rgba(0, 0, 0, 0.1);
-}
-
+/* 表单组基础样式 */
 .form-group {
   margin-bottom: 50rpx;
 }
@@ -767,13 +772,7 @@ const submitForm = async () => {
   color: #666;
 }
 
-.form-hint {
-  font-size: 24rpx;
-  color: #667eea;
-  margin-top: 15rpx;
-}
-
-/* 数量输入 */
+/* 数量输入样式 */
 .quantity-inputs {
   display: flex;
   gap: 30rpx;
@@ -807,12 +806,14 @@ const submitForm = async () => {
   align-items: center;
 }
 
+/* 错误提示 */
 .error-message {
   color: #ff4757;
   font-size: 24rpx;
   margin-top: 15rpx;
 }
 
+/* 剩余量提示 */
 .remaining-hint {
   color: #666;
   font-size: 24rpx;
@@ -849,7 +850,7 @@ const submitForm = async () => {
   font-weight: 500;
 }
 
-/* 班次选择 */
+/* 班次选择样式 */
 .shift-options {
   display: flex;
   gap: 20rpx;
@@ -890,9 +891,9 @@ const submitForm = async () => {
   color: #666;
 }
 
-/* 备注信息 */
+/* 备注信息样式 */
 .notes-textarea {
-  width: 91%;
+  width: 100%;
   height: 200rpx;
   padding: 25rpx 30rpx;
   border: 2rpx solid #e1e5e9;
@@ -900,6 +901,7 @@ const submitForm = async () => {
   background: #f8f9fa;
   font-size: 28rpx;
   line-height: 1.5;
+  box-sizing: border-box;
 }
 
 .notes-counter {
@@ -909,16 +911,34 @@ const submitForm = async () => {
   margin-top: 15rpx;
 }
 
+/* 添加掺兑信息按钮 */
+.add-blend-section {
+  display: flex;
+  justify-content: center;
+  margin: 40rpx 0;
+}
+
+.btn-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e8f4f8;
+  color: #4299e1;
+  padding: 20rpx 40rpx;
+  border-radius: 15rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.btn-icon {
+  font-size: 36rpx;
+  margin-right: 10rpx;
+}
+
 /* 操作按钮 */
 .action-buttons {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
   display: flex;
-  padding: 30rpx 40rpx;
-  background: white;
-  border-top: 1rpx solid #e1e5e9;
+  padding: 30rpx 0;
   gap: 20rpx;
 }
 
@@ -952,6 +972,7 @@ const submitForm = async () => {
   background: #ccc;
   box-shadow: none;
   opacity: 0.6;
+  pointer-events: none;
 }
 
 .btn-confirm:active:not(.disabled) {
@@ -982,7 +1003,7 @@ const submitForm = async () => {
   box-shadow: 0 20rpx 60rpx rgba(0, 0, 0, 0.2);
 }
 
-.brand-picker-modal, .batch-picker-modal {
+.batch-picker-modal {
   width: 80%;
 }
 
@@ -1006,72 +1027,12 @@ const submitForm = async () => {
   padding: 10rpx;
 }
 
-/* 搜索框 */
-.search-box {
-  padding: 30rpx;
-  border-bottom: 1rpx solid #e1e5e9;
-}
-
-.search-input {
-  width: 100%;
-  padding: 20rpx 25rpx;
-  border: 2rpx solid #e1e5e9;
-  border-radius: 25rpx;
-  background: #f8f9fa;
-  font-size: 28rpx;
-}
-
-/* 选择器列表 */
-.brand-picker-list, .batch-picker-list {
+/* 批次选择器列表 */
+.batch-picker-list {
   max-height: 500rpx;
   padding: 20rpx 0;
 }
 
-.brand-picker-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 30rpx;
-  border-bottom: 1rpx solid #f0f0f0;
-  transition: all 0.3s ease;
-}
-
-.brand-picker-item.selected {
-  background: #f0f4ff;
-  border-left: 6rpx solid #667eea;
-}
-
-.brand-picker-item:active {
-  background: #f8f9fa;
-}
-
-.brand-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.brand-name {
-  font-size: 28rpx;
-  font-weight: 500;
-  margin-bottom: 8rpx;
-}
-
-.brand-stock {
-  font-size: 24rpx;
-  color: #666;
-}
-
-.brand-status .in-stock {
-  color: #2ecc71;
-  font-size: 24rpx;
-}
-
-.brand-status .out-of-stock {
-  color: #e74c3c;
-  font-size: 24rpx;
-}
-
-/* 批次选择器项目 */
 .batch-picker-item {
   display: flex;
   justify-content: space-between;
@@ -1120,6 +1081,7 @@ const submitForm = async () => {
   font-size: 22rpx;
 }
 
+/* 状态样式 */
 .status-normal {
   background: #e8f5e9;
   color: #2e7d32;
