@@ -6,7 +6,7 @@
       <!-- 验证项 1：霉变烟叶 -->
       <view class="verify-section">
         <view class="section-title">【霉变烟叶检查】</view>
-        <radio-group @change="onMoldChange">          
+        <radio-group @change="onMoldChange">
           <view class="radio-item">
             <radio value="no" :checked="moldStatus === 'no'" color="#007AFF" />
             <text class="radio-text">否（无霉变）</text>
@@ -16,7 +16,6 @@
             <text class="radio-text">是（有霉变）</text>
           </view>
         </radio-group>
-
       </view>
 
       <!-- 验证项 2：批次核对 -->
@@ -53,18 +52,30 @@
         </text>
       </view>
     </view>
+
+    <!-- 新增：三级验证按钮 -->
+    <VerifyButton
+      buttonText="三级验证"
+      :batchId="myOrder.batchNo"
+      :brand="myOrder.brand"
+      segment="机械手"
+      :dataCount="3"
+      @success="handleVerifySuccess"
+      @fail="handleVerifyFail"
+      @validate="handleValidate"
+    />
   </view>
 </template>
 
 <script setup>
 import WorkOrderInfoCard from '@/components/orderInfo.vue';
 import UploadImage from '@/components/UploadImage.vue';
+import VerifyButton from '@/components/VerifyButton.vue'; // 引入三级验证组件
 import { ref, nextTick } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { submitMaterialCheck, byBatchIdAndSegment } from '@/api/production.js';
 
 // refs
-const moldUploadRef = ref(null);
 const batchUploadRef = ref(null);
 
 // 页面参数
@@ -90,25 +101,51 @@ onLoad(async (options) => {
   }
 });
 
-// 加载已有记录（回显）
+/**
+ * 加载已有记录（增强版回显逻辑）
+ */
 const loadExistingRecord = async (batchNo) => {
   try {
     const record = await byBatchIdAndSegment(batchNo, '机械手');
-	console.log(record)
-    if (!record) return;
+    console.log('加载历史记录:', record);
 
-    // 霉变状态
-    moldStatus.value = record.verificationResult.moldStatus || 'no';
+    if (!record || !record.verificationResult) return;
 
-    // 批次状态
-    batchStatus.value = record.verificationResult.batchStatus || 'normal';
-    if (batchStatus.value === 'normal' && record.verificationResult.batchImages?.length) {
+    const vr = record.verificationResult;
+
+    // 1. 回显霉变状态
+    moldStatus.value = vr.moldStatus || 'no';
+
+    // 2. 回显批次状态
+    batchStatus.value = vr.batchStatus || 'normal';
+
+    // 3. 回显批次图片（处理多种格式）
+    if (vr.batchImages) {
+      let imageUrls = vr.batchImages;
+
+      // 如果是对象，转换为数组
+      if (imageUrls && typeof imageUrls === 'object' && !Array.isArray(imageUrls)) {
+        console.log('发现 batchImages 为对象格式，已自动转换为数组');
+        imageUrls = Object.values(imageUrls);
+      }
+
+      // 清理 URL 中的特殊字符和空值
+      if (Array.isArray(imageUrls)) {
+        imageUrls = imageUrls
+          .map(url => typeof url === 'string' ? url.replace(/`/g, '').trim() : url)
+          .filter(url => url);
+      }
+
+      // 等待 UploadImage 组件挂载后再设置
       nextTick(() => {
-        batchUploadRef.value?.setPreviewImages(record.verificationResult.batchImages);
+        if (batchUploadRef.value && batchUploadRef.value.setPreviewImages) {
+          batchUploadRef.value.setPreviewImages(imageUrls);
+        }
       });
     }
+
   } catch (err) {
-    console.warn('加载历史记录失败', err);
+    console.warn('加载历史记录失败:', err);
   }
 };
 
@@ -121,53 +158,50 @@ const onBatchChange = (e) => {
   batchStatus.value = e.detail.value;
 };
 
-// 提交
+/**
+ * 提交检查结果
+ */
 const handleSubmit = async () => {
   // 如果批次异常或霉变，跳转到质量报警页面
   if (batchStatus.value === 'abnormal' || moldStatus.value === 'yes') {
-    // 构建参数传递给质量报警页面
-    let qualityAlarmUrl = '/pages/fault/fault-report?quality=true';
-    
-    uni.navigateTo({ 
-      url: qualityAlarmUrl 
-    });
+    let qualityAlarmUrl = `/pages/fault/fault-report?quality=true&batchNo=${encodeURIComponent(batchNo.value)}&brand=${encodeURIComponent(brand.value)}`;
+    uni.navigateTo({ url: qualityAlarmUrl });
     return;
   }
 
-  // 批次正常：必须验证霉变和批次图片
+  // 批次正常：必须验证批次图片
   try {
-
-    // 批次验证：必须2张图
+    // 检查图片数量
     const batchFiles = batchUploadRef.value?.getFiles() || [];
     if (batchFiles.length < 2) {
       uni.showToast({ title: '请上传2张批次验证图片', icon: 'none' });
       return;
     }
+
+    // 触发上传
     await batchUploadRef.value?.triggerUpload();
 
-    // 3. 获取上传结果
+    // 获取上传成功的图片URL
     const batchUrls = batchUploadRef.value?.getUploadedUrls() || [];
-
     if (batchUrls.length < 2) {
-      uni.showToast({ title: '批次图片上传不完整', icon: 'none' });
-      return;
+      throw new Error(`图片上传失败，成功${batchUrls.length}张`);
     }
 
-    // 4. 提交数据
+    // 构造提交数据
     const submitData = {
       batchId: batchNo.value,
       brand: brand.value,
       segment: '机械手',
-	  verificationResult:{  // JSON格式的验证结果
-	  	moldStatus: moldStatus.value,
-	  	batchStatus: batchStatus.value,
-	  	batchImages: batchUrls,
-	  
-	  },
+      verificationResult: {
+        moldStatus: moldStatus.value,
+        batchStatus: batchStatus.value,
+        batchImages: batchUrls,
+      },
       dataCount: batchUrls.length,
       operatorId: uni.getStorageSync('userId') || 'unknown'
     };
 
+    console.log('提交数据:', submitData);
     await submitMaterialCheck(submitData);
 
     uni.showToast({ title: '提交成功', icon: 'success' });
@@ -178,6 +212,35 @@ const handleSubmit = async () => {
     console.error('提交失败:', error);
     uni.showToast({ title: error.message || '提交失败', icon: 'none' });
   }
+};
+
+/**
+ * 三级验证成功回调
+ */
+const handleVerifySuccess = () => {
+  uni.showToast({
+    title: '三级验证成功',
+    icon: 'success'
+  });
+  // 可以在这里添加跳转或刷新逻辑
+};
+
+/**
+ * 三级验证失败回调
+ */
+const handleVerifyFail = (error) => {
+  uni.showToast({
+    title: `验证失败: ${error.message || '未知错误'}`,
+    icon: 'none'
+  });
+};
+
+/**
+ * 三级验证过程回调
+ */
+const handleValidate = (data) => {
+  console.log('验证过程数据:', data);
+  // 可以在这里显示加载状态
 };
 </script>
 
@@ -257,6 +320,3 @@ const handleSubmit = async () => {
   margin-bottom: 16rpx;
 }
 </style>
-
-
-

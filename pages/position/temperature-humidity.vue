@@ -6,7 +6,7 @@
 			<WorkOrderInfoCard :order-info="myOrder" />
 		</view>
 		<!-- 三压图上传组件 -->
-		<view class="upload-section">
+		<view class="upload-section" v-if="myOrder.number && (myOrder.number.includes('预混柜') || myOrder.number.replace(/\s+/g, '') === '1')">
 			<text class="upload-label">开料验证 三压图</text>
 			<UploadImage 
 				ref="pressureUploadRef"
@@ -44,7 +44,7 @@
 		</view>
 
 		<!-- 提交按钮区域 -->
-		<view class="submit-section">
+		<view class="submit-section" v-if="!hasSubmitted">
 			<u-button 
 				type="primary" 
 				@click="publish"
@@ -55,19 +55,36 @@
 				{{ submitting ? '提交中...' : '提交' }}
 			</u-button>
 		</view>
+     <!-- 验证按钮 -->
+      <VerifyButton 
+        buttonText="三级验证" 
+        :batchId="myOrder.batchNo" 
+        :brand="myOrder.brand" 
+        segment="增温增湿" 
+        :dataCount="3" 
+        @success="handleVerifySuccess" 
+        @fail="handleVerifyFail" 
+        @validate="handleValidate" 
+      />
 	</view>
 </template>
   
 <script setup>
 import WorkOrderInfoCard from '@/components/orderInfo.vue';
 import UploadImage from '@/components/UploadImage.vue'; // 引入你的UploadImage组件
-import { ref, onMounted } from 'vue';
+import VerifyButton from '@/components/VerifyButton.vue'; // 引入三级验证按钮组件
+import { ref, onMounted, nextTick } from 'vue';
 import { onLoad } from '@dcloudio/uni-app'; // 注意：在 script setup 中需显式引入 onLoad
+import { submitMaterialCheck, byBatchIdAndSegment } from '@/api/production.js';
   
 const currentUserInfo = ref(null); // 当前用户信息
 const pressureUploadRef = ref(null);
 const brandUploadRef = ref(null);
 const moistureUploadRef = ref(null);
+
+// 提交状态控制
+const submitting = ref(false); // 提交中状态
+const hasSubmitted = ref(false); // 是否已提交
 
 const form = ref({
   title: '',
@@ -92,6 +109,17 @@ onMounted(async () => {
     currentUserInfo.value = userInfo;
   } catch (err) {
     console.error('获取用户信息失败:', err);
+  }
+  
+  // 如果当前myOrder还没有有效的数据，再尝试从全局获取一次
+  if (!myOrder.value.batchNo && !myOrder.value.brand) {
+    console.log('onMounted: 尝试从全局状态获取数据...');
+    getDataFromGlobal();
+  }
+  
+  // ✅ 参考strip-tobacco-warehousing模式：无论数据来源，只要有批次号就加载历史记录
+  if (myOrder.value.batchNo) {
+    loadExistingCheckRecord(myOrder.value.batchNo);
   }
 });
 
@@ -130,9 +158,6 @@ const onImageUploadComplete = (imageType, results) => {
   // 可以在这里处理上传完成后的逻辑
 };
 
-// 提交状态
-const submitting = ref(false);
-
 // // 表单验证
 // function validateForm() {
 //   // 检查所有必需的图片字段
@@ -151,115 +176,120 @@ const submitting = ref(false);
 //   return true;
 // }
 
+// 提交功能
 const publish = async () => {
-  // if (submitting.value) return;
-
-  // submitting.value = true;
-  
-  const resultsPressure = await pressureUploadRef.value.triggerUpload()
-  
-  // 上传三亚到服务器
-  const imageUrlsPressure = await pressureUploadRef.value.getUploadedUrls()
-   console.log(imageUrlsPressure)
-  form.value.imagesPressure = imageUrlsPressure
-  
-  const resultsBrand = await brandUploadRef.value.triggerUpload()
-  
-  // 上传三亚到服务器
-  const imageUrlsBrand = brandUploadRef.value.getUploadedUrls()
-  
-  form.value.imagesBrand = imageUrlsBrand
-  
-  const resultsMoisture = await moistureUploadRef.value.triggerUpload()
-  
-  // 上传三亚到服务器
-  const imageUrlsMoisture = moistureUploadRef.value.getUploadedUrls()
-  
-  form.value.imagesMoisture = imageUrlsMoisture
-  
-
-  // 构建表单数据
-  let publishData = {
-    title: form.value.title || '三压验证数据',
-    content: form.value.content || '三压验证相关图片',
-    type: form.value.type, // ALL, DEPT, SELECTED
-    username: currentUserInfo.value?.username || '系统用户',
-    userId: uni.getStorageSync('userId') ? Number(uni.getStorageSync('userId')) : null,
-    // 包含订单信息
-    orderId: myOrder.value.id,
-    batchNo: myOrder.value.batchNo,
-    brand: myOrder.value.brand
-  };
-  
-  // 处理选择员工类型
-  if (form.value.type === 'SELECTED' && form.value.selectedUserIds && form.value.selectedUserIds.length > 0) {
-    publishData.selectedUserIds = form.value.selectedUserIds.map(id => Number(id));
-  }
-  
-  // 处理部门选择
-  if (form.value.type === 'DEPT' && form.value.selectedDeptIds) {
-    publishData.selectedDeptIds = form.value.selectedDeptIds.map(id => Number(id));
-  }
-  
-  // try {
-  //   // 合并所有图片数组
-  //   const allImages = [
-  //     ...(form.value.imagesPressure || []),
-  //     ...(form.value.imagesBrand || []),
-  //     ...(form.value.imagesMoisture || [])
-  //   ];
-    
-    console.log('提交表单数据:', publishData);
-    console.log('提交三压图数据:', form.value.imagesPressure);
-    console.log('提交批次号图数据:', form.value.imagesBrand);
-    console.log('提交水分仪图数据:', form.value.imagesMoisture);
-    
-  //   // 触发所有上传组件的上传操作
-  //   const uploadPromises = [];
-    
-  //   if (form.value.imagesPressure.length > 0) {
-  //     uploadPromises.push(pressureUploadRef.value?.triggerUpload());
-  //   }
-  //   if (form.value.imagesBrand.length > 0) {
-  //     uploadPromises.push(brandUploadRef.value?.triggerUpload());
-  //   }
-  //   if (form.value.imagesMoisture.length > 0) {
-  //     uploadPromises.push(moistureUploadRef.value?.triggerUpload());
-  //   }
-    
-  //   // 等待所有上传完成
-  //   const uploadResults = await Promise.all(uploadPromises);
-  //   console.log('所有上传结果:', uploadResults);
-    
-  //   // 获取上传后的图片URL
-  //   const uploadedUrls = [
-  //     ...pressureUploadRef.value?.getAllImageUrls() || [],
-  //     ...brandUploadRef.value?.getAllImageUrls() || [],
-  //     ...moistureUploadRef.value?.getAllImageUrls() || []
-  //   ];
-    
-  //   console.log('上传后的图片URL:', uploadedUrls);
-    
-  //   // 调用API提交数据和图片
-  //   // await publishTemperatureHumidity(publishData, uploadedUrls);
-    
-  //   uni.$u.toast('提交成功！');
-  //   setTimeout(() => {
-  //     uni.navigateBack();
-  //   }, 800);
-  // } catch (error) {
-  //   console.error('提交失败:', error);
-  //   uni.$u.toast(error.message || '提交失败，请重试');
-  // } finally {
-  //   submitting.value = false;
-  // }
-}
+	// 显示加载提示
+	submitting.value = true;
+	
+	try {
+		// 先上传所有图片
+		if (pressureUploadRef.value) {
+			await pressureUploadRef.value.triggerUpload();
+		}
+		if (brandUploadRef.value) {
+			await brandUploadRef.value.triggerUpload();
+		}
+		if (moistureUploadRef.value) {
+			await moistureUploadRef.value.triggerUpload();
+		}
+		
+		// 调用各个UploadImage组件的getAllImageUrls方法获取所有已上传图片的URL
+		let imagesPressure = pressureUploadRef.value ? pressureUploadRef.value.getAllImageUrls() : [];
+		let imagesBrand = brandUploadRef.value ? brandUploadRef.value.getAllImageUrls() : [];
+		let imagesMoisture = moistureUploadRef.value ? moistureUploadRef.value.getAllImageUrls() : [];
+		
+		console.log('三压图URL:', imagesPressure);
+		console.log('批次号图URL:', imagesBrand);
+		console.log('水分仪图URL:', imagesMoisture);
+		
+		// 表单验证：检查是否有未上传成功的图片
+		// if (imagesPressure.length === 0) {
+		// 	uni.showToast({
+		// 		title: '三压图上传失败，请重试',
+		// 		icon: 'none'
+		// 	});
+		// 	return;
+		// }
+		if (imagesBrand.length === 0) {
+			uni.showToast({
+				title: '批次号图上传失败，请重试',
+				icon: 'none'
+			});
+			return;
+		}
+		if (imagesMoisture.length === 0) {
+			uni.showToast({
+				title: '水分仪图上传失败，请重试',
+				icon: 'none'
+			});
+			return;
+		}
+		
+		// 构建提交数据 - 匹配后端API要求的结构
+		const verificationResult = {
+			images: {
+				imagesPressure,
+				imagesBrand,
+				imagesMoisture
+			},
+			state: "normal"
+		};
+		
+		const submitData = {
+			batchId: myOrder.value.batchNo,  // 使用batchId而不是batchNo
+			brand: myOrder.value.brand,
+			segment: "增温增湿",  // 使用segment而不是segmentName
+			verificationResult: verificationResult,
+			dataCount: 3,  // 图片数量
+			operatorId: uni.getStorageSync('userId') || ''  // 操作员ID
+		};
+		
+		console.log('准备提交的数据:', submitData);
+		
+		// 调用API提交数据
+		console.log('开始调用submitMaterialCheck API');
+		console.log('提交的数据:', JSON.stringify(submitData));
+		try {
+			const res = await submitMaterialCheck(submitData);
+			console.log('API调用成功，返回数据:', res);
+			// 根据request.js的实现，res已经是后端返回的data部分
+		} catch (error) {
+			console.error('API调用失败:', error);
+			throw error; // 继续抛出错误，让上层catch处理
+		}
+		
+		// 提交成功
+		uni.showModal({
+			title: '提交成功',
+			content: '您的表单已成功提交！',
+			showCancel: false,
+			success: () => {
+				// 设置为已提交状态，隐藏提交按钮
+				hasSubmitted.value = true;
+				
+				// 返回上一页
+				uni.navigateBack();
+			}
+		});
+	} catch (error) {
+		console.error('提交失败:', error);
+		uni.showModal({
+			title: '提交失败',
+			content: '表单提交失败，请重试！',
+			showCancel: false
+		});
+	} finally {
+		// 隐藏加载提示
+		submitting.value = false;
+	}
+};
 
 // 创建订单信息响应式对象
 const myOrder = ref({
   id: '',
   batchNo: '',
-  brand: ''
+  brand: '',
+  number: ''
 });
 
 // 从全局状态获取数据的函数
@@ -275,7 +305,8 @@ const getDataFromGlobal = () => {
       myOrder.value = {
         id: app.globalData.currentOrder.id || '',
         batchNo: app.globalData.currentOrder.batchNo || '',
-        brand: app.globalData.currentOrder.brand || ''
+        brand: app.globalData.currentOrder.brand || '',
+        number: app.globalData.currentOrder.number || ''
       };
       console.log('通过全局状态更新订单信息:', myOrder.value);
       return true;
@@ -286,18 +317,58 @@ const getDataFromGlobal = () => {
   return false;
 };
 
+// 三级验证成功事件处理函数
+const handleVerifySuccess = (result) => {
+  console.log('三级验证成功:', result);
+  uni.showToast({
+    title: '三级验证成功',
+    icon: 'success'
+  });
+  // 可以在这里添加验证成功后的逻辑，比如显示成功信息、跳转页面等
+};
+
+// 三级验证失败事件处理函数
+const handleVerifyFail = (error) => {
+  console.error('三级验证失败:', error);
+  uni.showToast({
+    title: '三级验证失败',
+    icon: 'none'
+  });
+  // 可以在这里添加验证失败后的逻辑，比如显示错误信息等
+};
+
+// 三级验证步骤事件处理函数
+const handleValidate = (data) => {
+  console.log('三级验证步骤信息:', data);
+  // data包含step（当前步骤）、success（是否成功）、user（验证用户）等信息
+  if (data.success) {
+    uni.showToast({
+      title: `${data.step === 1 ? '段长' : data.step === 2 ? '跟班' : '车间'}验证通过`,
+      icon: 'success',
+      duration: 1500
+    });
+  } else {
+    uni.showToast({
+      title: `${data.step === 1 ? '段长' : data.step === 2 ? '跟班' : '车间'}验证失败`,
+      icon: 'none',
+      duration: 1500
+    });
+  }
+};
+
 // 页面加载时接收参数并更新订单信息
 onLoad((options) => {
   // 注意：options 中的值都是字符串，且可能包含编码后的中文
   console.log('接收到的URL参数:', options);
   
   // 优先尝试从URL参数获取数据
-  if (options && (options.id || options.batchNo || options.brand)) {
+  if (options && (options.id || options.batchNo || options.brand || options.number)) {
     // 获取并解码URL参数，直接更新myOrder对象
     myOrder.value = {
       id: options.id ? decodeURIComponent(options.id) : '',
       batchNo: options.batchNo ? decodeURIComponent(options.batchNo) : '',
-      brand: options.brand ? decodeURIComponent(options.brand) : ''
+      brand: options.brand ? decodeURIComponent(options.brand) : '',
+      number: options.number ? decodeURIComponent(options.number) : ''
     };
     
     console.log('通过URL参数更新后的订单信息:', myOrder.value);
@@ -307,15 +378,72 @@ onLoad((options) => {
   }
 });
 
-// 页面挂载后再尝试一次从全局状态获取数据（确保全局数据已设置完成）
-onMounted(() => {
-  // 如果当前myOrder还没有有效的数据，再尝试从全局获取一次
-  if (!myOrder.value.batchNo && !myOrder.value.brand) {
-    console.log('onMounted: 尝试从全局状态获取数据...');
-    getDataFromGlobal();
-  }
-});
+// 加载已有核对记录 - 优化图片回显功能
+const loadExistingCheckRecord = async (batchNo) => {
+   if (!batchNo) return;
+   
+   try {
+     const res = await byBatchIdAndSegment(batchNo, "增温增湿");
+     console.log('加载历史记录结果:', res);
+     
+     if (res) {
+       const record = res;
+       // 处理verificationResult：如果是JSON字符串则解析成对象
+       let verificationResult = record.verificationResult || {};
+       if (typeof verificationResult === 'string') {
+         try {
+           verificationResult = JSON.parse(verificationResult);
+           console.log('成功解析verificationResult:', verificationResult);
+         } catch (e) {
+           console.error('解析verificationResult失败:', e);
+           verificationResult = {};
+         }
+       }
+       
+       // 如果有历史记录，则设置为已提交状态
+       hasSubmitted.value = true;
+       
+       // 确保images对象存在
+       const images = verificationResult.images || {};
+       console.log('需要回显的图片数据:', images);
 
+       // 等待所有 UploadImage 组件都已挂载到DOM
+       await nextTick();
+
+       // 定义需要回显的图片类型及其对应的组件引用
+       const imageTypesToEcho = [
+         { key: 'imagesPressure', ref: pressureUploadRef, urls: images.imagesPressure },
+         { key: 'imagesBrand', ref: brandUploadRef, urls: images.imagesBrand },
+         { key: 'imagesMoisture', ref: moistureUploadRef, urls: images.imagesMoisture }
+       ];
+
+       // 遍历并执行回显操作
+       for (const { key, ref: componentRef, urls } of imageTypesToEcho) {
+         // 检查组件是否存在且有 setPreviewImages 方法
+         if (componentRef.value && typeof componentRef.value.setPreviewImages === 'function') {
+           // 统一处理 urls 为数组
+           const imageUrls = Array.isArray(urls) ? urls : urls ? [urls] : [];
+           
+           // 直接调用组件方法进行回显，组件内部应处理好URL格式化
+           componentRef.value.setPreviewImages(imageUrls);
+           console.log(`✅ ${key} 图片回显成功，共 ${imageUrls.length} 张。`);
+         } else {
+           console.warn(`⚠️ ${key} 组件未找到或不支持 setPreviewImages 方法，跳过回显。`);
+         }
+       }
+       
+       console.log('已加载历史核对记录并完成图片回显。');
+     } else {
+       console.log('该批次无历史核对记录');
+       // 当无历史记录时，重置已提交状态
+       hasSubmitted.value = false;
+     }
+   } catch (error) {
+     console.error('加载历史核对记录失败:', error);
+     // 出错时重置已提交状态
+     hasSubmitted.value = false;
+   }
+ };
 </script>
   
 <style scoped>

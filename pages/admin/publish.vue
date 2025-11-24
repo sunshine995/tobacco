@@ -23,6 +23,7 @@
       
       <!-- 图片上传组件 -->
       <view class="form-group">
+<<<<<<< HEAD
         <label class="form-label">上传图片</label>
           <upload-image
             ref="uploadRef"
@@ -43,6 +44,14 @@
           :max-count="3"
           @success="onVideoSuccess"
       />
+=======
+		  <label class="form-label">上传图片</label>
+        <upload-image
+          ref="uploadRef"
+          :max-count="3"
+        />
+      </view>
+>>>>>>> origin/new
     </view>
     
     <view class="form-card">
@@ -63,6 +72,7 @@
       <!-- 班组选择 -->
       <view class="form-group" v-if="form.sendRangeType === 'WORK_GROUP'">
         <label class="form-label">选择班组</label>
+<<<<<<< HEAD
         <checkbox-group @change="onWorkGroupChange">
           <view class="checkbox-group">
             <view 
@@ -80,6 +90,24 @@
             </view>
           </view>
         </checkbox-group>
+=======
+        <view class="checkbox-group">
+          <view 
+            v-for="group in workGroups" 
+            :key="group.id"
+            class="checkbox-item"
+          >
+            <label class="checkbox-label">
+              <checkbox 
+                :value="group.id" 
+                :checked="form.workGroupIds.includes(group.id)"
+                @change="(e) => onWorkGroupChange(e, group.id)"
+              />
+              <text class="checkbox-text">{{ group.name }}</text>
+            </label>
+          </view>
+        </view>
+>>>>>>> origin/new
       </view>
       
       <!-- 党支部选择 -->
@@ -91,6 +119,7 @@
 		      :key="branch.id"
 		      class="branch-item"
 		    >
+<<<<<<< HEAD
 		      <!-- 父级分支 - 只作为全选控制器，不返回其ID -->
 		      <view class="branch-header">
 		        <view class="checkbox-label" @click.stop="toggleExpand(branch)">
@@ -155,6 +184,66 @@
      </view>
 	  
 	  
+=======
+		      <!-- 父级：整行可点击切换展开 -->
+		      <view 
+		        class="branch-header" 
+		        @click="toggleExpand(branch)"
+		      >
+		        <checkbox 
+		          :value="branch.id" 
+		          :checked="isBranchChecked(branch)"
+		          @change="(e) => onParentBranchChange(e, branch)"
+		          @click.stop="" 
+		        />
+		        <text class="branch-name">{{ branch.name }}</text>
+		        <text class="expand-icon">{{ branch.expanded ? '▲' : '▼' }}</text>
+		      </view>
+		
+		      <!-- 子项：根据 expanded 决定是否显示 -->
+		      <view 
+		        v-if="branch.expanded && branch.children" 
+		        class="children-group"
+		      >
+		        <view 
+		          v-for="child in branch.children" 
+		          :key="child.id"
+		          class="checkbox-item child-item"
+		        >
+		          <label class="checkbox-label">
+		            <checkbox 
+		              :value="child.id" 
+		              :checked="form.partyBranchIds.includes(child.id)"
+		              @change="(e) => onChildBranchChange(e, child, branch)"
+		            />
+		            <text class="checkbox-text">└─ {{ child.name }}</text>
+		          </label>
+		        </view>
+		      </view>
+		    </view>
+		  </view>
+		</view>
+      <!-- 动态组选择 -->
+      <view class="form-group" v-if="form.sendRangeType === 'DYNAMIC_GROUP'">
+        <label class="form-label">选择动态组</label>
+        <view class="checkbox-group">
+          <view 
+            v-for="group in dynamicGroups" 
+            :key="group.id"
+            class="checkbox-item"
+          >
+            <label class="checkbox-label">
+              <checkbox 
+                :value="group.id" 
+                :checked="form.dynamicGroupIds.includes(group.id)"
+                @change="(e) => onDynamicGroupChange(e, group.id)"
+              />
+              <text class="checkbox-text">{{ group.name }}</text>
+            </label>
+          </view>
+        </view>
+      </view>
+>>>>>>> origin/new
     </view>
     
     <view class="action-buttons">
@@ -199,18 +288,30 @@ const form = reactive({
 })
 
 const rangeOptions = ref([
+<<<<<<< HEAD
   { label: '全部人员', value: 'ALL' },
+=======
+  { label: '全车间', value: 'ALL' },
+>>>>>>> origin/new
   { label: '班组', value: 'WORK_GROUP' },
   { label: '党支部', value: 'PARTY_BRANCH' },
   { label: '动态组', value: 'DYNAMIC_GROUP' }
 ])
 
 const workGroups = ref([
+<<<<<<< HEAD
   { id: "管理组", name: '管理组' },
   { id: "甲班", name: '甲班' },
   { id: "乙班", name: '乙班' },
   { id: "维修组", name: '维修组' },
   { id: '电气组', name: '电气组' }
+=======
+  { id: "1", name: '管理组' },
+  { id: "2", name: '甲班' },
+  { id: "3", name: '乙班' },
+  { id: "4", name: '维修组' },
+  { id: '5', name: '电气组' }
+>>>>>>> origin/new
 ])
 
 const partyBranchesTree = ref([
@@ -236,13 +337,23 @@ const partyBranchesTree = ref([
 
 const dynamicGroups = ref([])
 const sending = ref(false)
+<<<<<<< HEAD
 
+=======
+const imageUploadRef = ref(null)
+
+// 模拟接口请求函数
+const toggleExpand = (branch) => {
+  branch.expanded = !branch.expanded;
+};
+>>>>>>> origin/new
 
 // 加载数据
 onMounted(async () => {
   await loadDynamicGroups()
 })
 
+<<<<<<< HEAD
 const onVideoSuccess = (result) => {
   console.log('✅ 视频上传成功');
   console.log('提取的 URL:', result.url);
@@ -252,12 +363,19 @@ const onVideoSuccess = (result) => {
 const loadDynamicGroups = async () => {
   try {
     const res = await getWorkGroupByUserId(uni.getStorageSync('userId'))
+=======
+const loadDynamicGroups = async () => {
+  try {
+    const res = await getWorkGroupByUserId(uni.getStorageSync('userId'))
+	console.log(res)
+>>>>>>> origin/new
     dynamicGroups.value = res
   } catch (error) {
     console.error('加载动态组失败:', error)
   }
 }
 
+<<<<<<< HEAD
 const onWorkGroupChange = (e) => {
   form.workGroupIds = e.detail.value.map(id => String(id));
 }
@@ -326,6 +444,95 @@ const toggleExpand = (branch) => {
   branch.expanded = !branch.expanded;
 };
 //发送信息
+=======
+const onWorkGroupChange = (e, groupId) => {
+  if (e.detail.value.includes(String(groupId))) {
+    form.workGroupIds.push(groupId)
+  } else {
+    const index = form.workGroupIds.indexOf(groupId)
+    if (index > -1) {
+      form.workGroupIds.splice(index, 1)
+    }
+  }
+}
+
+const onPartyBranchChange = (e, branchId) => {
+  if (e.detail.value.includes(String(branchId))) {
+    form.partyBranchIds.push(branchId)
+  } else {
+    const index = form.partyBranchIds.indexOf(branchId)
+    if (index > -1) {
+      form.partyBranchIds.splice(index, 1)
+    }
+  }
+}
+
+const onDynamicGroupChange = (e, groupId) => {
+  if (e.detail.value.includes(String(groupId))) {
+    form.dynamicGroupIds.push(groupId)
+  } else {
+    const index = form.dynamicGroupIds.indexOf(groupId)
+    if (index > -1) {
+      form.dynamicGroupIds.splice(index, 1)
+    }
+  }
+}
+
+// 判断父级是否被选中（全选 or 半选）
+const isBranchChecked = (branch) => {
+  if (!branch.children || branch.children.length === 0) {
+    return form.partyBranchIds.includes(branch.id);
+  }
+  const allChildrenSelected = branch.children.every(child => 
+    form.partyBranchIds.includes(child.id)
+  );
+  return allChildrenSelected;
+};
+
+// 父级 checkbox 变化
+const onParentBranchChange = (e, branch) => {
+  const checked = e.detail.value.includes(branch.id);
+  
+  if (checked) {
+    // 选中父级 → 选中所有子级 + 父级本身（可选）
+    const allIds = [branch.id, ...(branch.children?.map(c => c.id) || [])];
+    allIds.forEach(id => {
+      if (!form.partyBranchIds.includes(id)) {
+        form.partyBranchIds.push(id);
+      }
+    });
+  } else {
+    // 取消父级 → 取消所有子级 + 父级
+    const allIds = [branch.id, ...(branch.children?.map(c => c.id) || [])];
+    form.partyBranchIds = form.partyBranchIds.filter(id => !allIds.includes(id));
+  }
+};
+
+// 子级 checkbox 变化
+const onChildBranchChange = (e, child, parentBranch) => {
+  const checked = e.detail.value.includes(child.id);
+  
+  if (checked) {
+    if (!form.partyBranchIds.includes(child.id)) {
+      form.partyBranchIds.push(child.id);
+    }
+  } else {
+    const index = form.partyBranchIds.indexOf(child.id);
+    if (index > -1) form.partyBranchIds.splice(index, 1);
+  }
+
+  // 检查是否要自动取消父级（如果子级未全选）
+  const allChildrenSelected = parentBranch.children.every(c => 
+    form.partyBranchIds.includes(c.id)
+  );
+  if (!allChildrenSelected && form.partyBranchIds.includes(parentBranch.id)) {
+    // 自动取消父级（半选状态不保留父ID，除非你想要“部分选中”样式）
+    const idx = form.partyBranchIds.indexOf(parentBranch.id);
+    if (idx > -1) form.partyBranchIds.splice(idx, 1);
+  }
+};
+
+>>>>>>> origin/new
 const sendMessage = async () => {
   if (!form.title.trim()) {
     uni.showToast({
@@ -346,6 +553,7 @@ const sendMessage = async () => {
   sending.value = true
   
   try {
+<<<<<<< HEAD
     // 上传图片
     await uploadRef.value.triggerUpload();
     // 获取所有上传成功的图片URL
@@ -447,6 +655,43 @@ const sendMessage = async () => {
       uni.navigateBack()
     }, 1500)
     
+=======
+    // 模拟上传图片
+    let imageUrls = []
+    if (form.images.length > 0 && imageUploadRef.value) {
+      // 模拟上传图片
+      imageUrls = form.images.map((_, index) => `http://example.com/image${index}.jpg`)
+    }
+    
+    // 模拟发送消息
+    const messageData = {
+      ...form,
+      images: imageUrls
+    }
+    
+    console.log('发送消息数据:', messageData)
+    
+    const res = await mockRequest('/message/send', {
+      method: 'POST',
+      data: messageData
+    })
+    
+    if (res.code === 200) {
+      uni.showToast({
+        title: '发送成功',
+        icon: 'success'
+      })
+      
+      setTimeout(() => {
+        uni.navigateBack()
+      }, 1500)
+    } else {
+      uni.showToast({
+        title: res.message || '发送失败',
+        icon: 'none'
+      })
+    }
+>>>>>>> origin/new
   } catch (error) {
     console.error('发送消息失败:', error)
     uni.showToast({
@@ -458,12 +703,15 @@ const sendMessage = async () => {
   }
 }
 
+<<<<<<< HEAD
 // 清理党支部ID，确保只包含子级ID
 const cleanPartyBranchIds = (partyBranchIds) => {
   const parentIds = partyBranchesTree.value.map(branch => branch.id);
   return partyBranchIds.filter(id => !parentIds.includes(id));
 }
 
+=======
+>>>>>>> origin/new
 const saveDraft = () => {
   // 保存草稿逻辑
   uni.showToast({
@@ -527,6 +775,27 @@ const saveDraft = () => {
   gap: 20rpx;
 }
 
+<<<<<<< HEAD
+=======
+.range-option {
+  flex: 1;
+  min-width: 150rpx;
+  text-align: center;
+  padding: 20rpx;
+  border: 2rpx solid #e5e5e5;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  transition: all 0.3s;
+}
+
+.range-option.active {
+  border-color: #1E6FBA;
+  background: #f0f8ff;
+  color: #1E6FBA;
+  font-weight: 600;
+}
+
+>>>>>>> origin/new
 .checkbox-group {
   display: flex;
   flex-direction: column;
@@ -550,6 +819,14 @@ const saveDraft = () => {
   font-size: 28rpx;
 }
 
+<<<<<<< HEAD
+=======
+.member-count {
+  font-size: 24rpx;
+  color: #999;
+}
+
+>>>>>>> origin/new
 .action-buttons {
   display: flex;
   gap: 20rpx;
@@ -581,6 +858,7 @@ const saveDraft = () => {
 .branch-item {
   margin-bottom: 20rpx;
 }
+<<<<<<< HEAD
 .parent-checkbox {
   display: flex;
   align-items: center;
@@ -610,16 +888,49 @@ const saveDraft = () => {
   align-items: center;
   flex: 1;
   cursor: pointer;
+=======
+
+.branch-label {
+  background: #f8f9fa;
+  padding: 20rpx;
+  border-radius: 12rpx;
+  font-weight: bold;
+}
+
+.child-item {
+  padding-left: 40rpx;
+  margin-top: 10rpx;
+}
+
+.expand-icon {
+  margin-left: auto;
+  color: #999;
+  font-size: 24rpx;
+}
+
+.branch-header {
+  display: flex;
+  align-items: center;
+  padding: 20rpx;
+  background: #f8f9fa;
+  border-radius: 12rpx;
+  cursor: pointer; /* uni-app 中可能无效，但无害 */
+>>>>>>> origin/new
 }
 
 .branch-name {
   flex: 1;
   font-weight: bold;
+<<<<<<< HEAD
+=======
+  margin-left: 20rpx;
+>>>>>>> origin/new
 }
 
 .expand-icon {
   color: #999;
   font-size: 24rpx;
+<<<<<<< HEAD
   margin-left: 20rpx;
 }
 
@@ -649,6 +960,8 @@ const saveDraft = () => {
   background: #1E6FBA;
   color: white;
   border-color: #1E6FBA;
+=======
+>>>>>>> origin/new
 }
 </style>
 

@@ -10,59 +10,66 @@
       <view class="section-title-wrapper">
         <text class="section-main-title">图片上传</text>
       </view>
-      
-      <UploadCard
-        v-model="form.imagesBrand"
-        label-text="批次号 牌号图"
+      <text class="upload-label">牌号 批次号图</text>
+      <UploadImage
+        ref="brandUploadRef"
+        title="添加批次号图"
         :max-count="1"
-        upload-text="点击上传批次号 牌号图"
-        name="brand-image"
-        @after-read="(e) => onAfterRead(e, 'imagesBrand')"
-        @delete="(e) => onDeleteImage(e, 'imagesBrand')"
+        @success="(e) => handleImageUploadSuccess(e, 'imagesBrand')"
+        @remove="(e) => handleImageRemove(e, 'imagesBrand')"
         class="upload-card-item"
       />
-
-      <UploadCard
-        v-model="form.imagesWidth"
-        label-text="切丝宽度"
+      <text class="upload-label">切丝宽度图</text>    
+      <UploadImage
+        ref="widthUploadRef"
+        title="添加切丝宽度图"
         :max-count="1"
-        upload-text="点击上传丝宽"
-        name="width-image"
-        @after-read="(e) => onAfterRead(e, 'imagesWidth')"
-        @delete="(e) => onDeleteImage(e, 'imagesWidth')"
+        @success="(e) => handleImageUploadSuccess(e, 'imagesWidth')"
+        @remove="(e) => handleImageRemove(e, 'imagesWidth')"
         class="upload-card-item"
       />
-
-      <UploadCard
-        v-model="form.imagesJunk"
-        label-text="杂物"
+      <text class="upload-label">杂物图</text> 
+      <UploadImage
+        ref="junkUploadRef"
+        title="添加杂物图"
         :max-count="1"
-        upload-text="点击上传杂物"
-        name="junk-image"
-        @after-read="(e) => onAfterRead(e, 'imagesJunk')"
-        @delete="(e) => onDeleteImage(e, 'imagesJunk')"
+        @success="(e) => handleImageUploadSuccess(e, 'imagesJunk')"
+        @remove="(e) => handleImageRemove(e, 'imagesJunk')"
         class="upload-card-item"
       />
+      <up-textarea v-model="form.junkRemark" placeholder="请输入杂物备注" style="width: 94%; margin-top: 20rpx;"></up-textarea>
     </view>
 
     <!-- 操作按钮区域 -->
     <view class="action-buttons-section">
-      <u-button 
+      <up-button 
         type="primary" 
         @click="publish"
         :loading="submitting"
-        :disabled="submitting || !isAllImagesUploaded"
         class="submit-btn primary-btn"
+        v-if="!hasSubmitted"
       >
-        {{ submitting ? '提交中...' : '提交图片信息' }}
-      </u-button>
+        {{ submitting ? '提交中...' : '提交验证' }}
+      </up-button>
+      
+      <!-- 三级验证按钮 -->
+      <VerifyButton 
+        buttonText="三级验证" 
+        :batchId="myOrder.batchNo" 
+        :brand="myOrder.brand" 
+        segment="切丝机" 
+        :dataCount="2" 
+        @success="handleVerifySuccess" 
+        @fail="handleVerifyFail" 
+        @validate="handleValidate" 
+      />
       
       <text 
-  class="section-main-title" 
-  style="display: block; text-align: center; font-size: 40rpx; font-weight: 600; color: #333; margin-bottom: 8rpx;"
->
-  烟叶信息
-</text>
+        class="section-main-title" 
+        style="display: block; text-align: center; font-size: 40rpx; font-weight: 600; color: #333; margin-bottom: 8rpx;"
+      >
+        烟叶信息
+      </text>
     </view>
 
     <!-- 本批料已加入烟叶区域 -->
@@ -140,10 +147,6 @@
         ></u-search>
       </view>
 
-      <!-- 加载状态 -->
-  <!-- 已移除u-loading组件，使用uni.showLoading替代 -->
-  
-  <!-- 错误提示和内容区域 -->
       <view v-if="errorMsg && !loading" class="error-msg-container">
         <view class="error-msg">{{ errorMsg }}</view>
         <u-button 
@@ -163,12 +166,19 @@
             :key="item.id || index"
             class="tobacco-card"
           >
+            <!-- 核心逻辑：按退出天数显示对应提示 -->
+            <view v-if="getDaysSinceExit(item.exitTime) <= 5" class="prompt-tag same-brand">
+              同牌号掺兑
+            </view>
+            <view v-else-if="getDaysSinceExit(item.exitTime) > 5 && getDaysSinceExit(item.exitTime) <= 10" class="prompt-tag downgrade">
+              降级掺兑
+            </view>
+            
             <view class="tobacco-info">
-              <!-- 修复：将包含u-tag的text组件改为view容器，避免text嵌套组件 -->
               <view class="info-row">
                 <text class="label">牌号：</text>
-                <view class="value-wrapper">  <!-- 用view替代text作为容器 -->
-                  <text class="brand-text">{{ item.brand }}</text>  <!-- 纯文本保留在text中 -->
+                <view class="value-wrapper">
+                  <text class="brand-text">{{ item.brand }}</text>
                   <u-tag 
                     v-if="item.isTimeout" 
                     text="超时烟叶" 
@@ -192,26 +202,23 @@
               </view>
             </view>
             <view class="tobacco-action">
-              <u-button 
+              <up-button 
                 type="success" 
-                size="mini" 
                 text="加入本批料中"
                 shape="circle"
                 @click.stop="addToBatch(item, index)"
-              ></u-button>
+              ></up-button>
             </view>
           </view>
         </u-cell-group>
       </view>
       
-      <!-- 空状态显示（仅在没有错误且列表为空时显示） -->
       <view v-else-if="!errorMsg && !loading" class="empty-state">
         <u-empty 
           text="暂无退出的烟叶" 
           mode="list"
         ></u-empty>
         <text class="empty-hint">请尝试搜索或添加新的退出烟叶</text>
-      </view>
       </view>
     </view>
     
@@ -311,17 +318,17 @@
       @confirm="handleTimeConfirm" 
       @cancel="showTimePicker = false" 
     ></u-datetime-picker>
-  
-
-  
+  </view>
 </template>
 
 <script setup>
-import { ref, computed, onMounted ,watch} from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import WorkOrderInfoCard from '@/components/orderInfo.vue';
-//import UploadCard from '@/components/uploadImageCard.vue';
-import { uploadFilesWithForm } from '@/utils/upload';
+import UploadImage from '@/components/UploadImage.vue';
+import VerifyButton from '@/components/VerifyButton.vue';
+import { byBatchIdAndSegment, submitMaterialCheck } from '@/api/production.js';
+import { request } from '../../utils/request.js';
 
 // 订单信息响应式对象
 const myOrder = ref({
@@ -332,13 +339,24 @@ const myOrder = ref({
 
 // 表单数据（图片上传相关）
 const form = ref({
-  imagesBrand: [],    // 批次号图
+  imagesBrand: [],    // 批次号图（存储{url}格式）
   imagesWidth: [],    // 切丝宽度图
-  imagesJunk: []      // 杂物图
+  imagesJunk: [],     // 杂物图
+  junkRemark: '',     // 杂物备注
+  externalImagesBrand: [],
+  externalImagesWidth: [],
+  externalImagesJunk: []
 });
+
+// 上传组件引用
+const brandUploadRef = ref(null);
+const widthUploadRef = ref(null);
+const junkUploadRef = ref(null);
 
 // 提交状态（防止重复提交）
 const submitting = ref(false);
+// 是否已提交状态（用于控制按钮显示）
+const hasSubmitted = ref(false);
 
 // 烟叶相关响应式数据
 const addedTobaccoList = ref([]);         // 已加入的烟叶列表
@@ -347,15 +365,14 @@ const searchKeyword = ref('');            // 搜索关键词
 const showTobaccoSections = ref(true);    // 是否显示烟叶区域
 const currentOperation = ref(null);       // 当前操作信息
 
-// 在现有响应式变量后添加
-const loading = ref(false); // 接口加载状态
-const errorMsg = ref(''); // 错误提示信息
+// 接口加载状态和错误提示
+const loading = ref(false);
+const errorMsg = ref('');
 
 // 引入统一的请求工具
-import { request } from '../../utils/request.js';
 
 
-// 新增：根据工单ID查询已加入的烟叶
+// 根据工单ID查询已加入的烟叶
 const fetchAddedTobaccosByWorkOrderId = async (workOrderId) => {
   if (!workOrderId) {
     console.warn('工单ID为空，不发起请求');
@@ -364,12 +381,10 @@ const fetchAddedTobaccosByWorkOrderId = async (workOrderId) => {
   loading.value = true;
   errorMsg.value = '';
   try {
-    // 调用后端接口：GET /api/tobaccos/added/{workOrderId}
     const data = await request({
-      url: `/api/tobaccos/added/${workOrderId}`, // 路径参数拼接工单ID
+      url: `/api/tobaccos/added/${workOrderId}`,
       method: 'GET'
     });
-    // 更新已加入烟叶列表（接口返回的data直接是烟叶数组）
     addedTobaccoList.value = data || [];
     console.log('根据工单ID获取已加入烟叶成功：', data);
   } catch (err) {
@@ -385,25 +400,18 @@ const fetchAllExitTobaccos = async () => {
   loading.value = true;
   errorMsg.value = '';
   try {
-    // 调用接口：GET /api/tobaccos?status=exit
     console.log('开始获取退出烟叶列表，搜索关键词：', searchKeyword.value);
-    
-    // 使用统一的请求工具
     const data = await request({
       url: '/api/tobaccos',
       method: 'GET',
       data: {
-        status: 'exit', // 固定传参：只查退出状态
-        searchKeyword: searchKeyword.value // 支持带搜索关键字请求
+        status: 'exit',
+        searchKeyword: searchKeyword.value
       }
     });
-
-    // 接口成功：更新退出烟叶列表
     exitTobaccoList.value = data || [];
     console.log('获取退出烟叶列表成功：', data);
-    
   } catch (err) {
-    // 错误处理（request工具已处理状态码和提示）
     console.error('获取退出烟叶列表异常：', err);
     errorMsg.value = err.message || '获取退出烟叶失败';
   } finally {
@@ -412,20 +420,37 @@ const fetchAllExitTobaccos = async () => {
   }
 };
 
-// 监听搜索关键词变化，触发接口请求
-  watch(searchKeyword, (newVal) => {
-    // 清除上一次的定时器（避免输入过快时多次请求）
-    if (window.searchTimer) {
-      clearTimeout(window.searchTimer);
-    }
-    // 延迟 300ms 执行，等待用户输入完成
-    window.searchTimer = setTimeout(() => {
-      // 搜索时清除错误信息，提供更好的用户体验
-      errorMsg.value = '';
-      // 调用接口，传入最新的搜索关键词
-      fetchAllExitTobaccos();
-    }, 300);
+// 三级验证成功处理函数
+const handleVerifySuccess = () => {
+  uni.showToast({
+    title: '三级验证成功',
+    icon: 'success'
   });
+};
+
+// 三级验证失败处理函数
+const handleVerifyFail = (error) => {
+  uni.showToast({
+    title: `验证失败: ${error.message || '未知错误'}`,
+    icon: 'none'
+  });
+};
+
+// 三级验证过程中的验证处理函数
+const handleValidate = (data) => {
+  console.log('验证过程数据:', data);
+};
+
+// 监听搜索关键词变化，触发接口请求
+watch(searchKeyword, (newVal) => {
+  if (window.searchTimer) {
+    clearTimeout(window.searchTimer);
+  }
+  window.searchTimer = setTimeout(() => {
+    errorMsg.value = '';
+    fetchAllExitTobaccos();
+  }, 300);
+});
 
 // 表单弹窗相关数据
 const showFormModal = ref(false);         // 表单弹窗显示状态
@@ -457,15 +482,20 @@ const formRules = ref({
   ]
 });
 
-// 移除未使用的newTobaccoForm变量
-
-
-
 // 格式化时间显示
 const formatTime = (timeString) => {
   if (!timeString) return '';
   const date = new Date(timeString);
   return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+};
+
+// 计算退出烟叶的天数
+const getDaysSinceExit = (exitTime) => {
+  if (!exitTime) return 0;
+  const exitDate = new Date(exitTime);
+  const now = new Date();
+  const diffTime = Math.abs(now - exitDate);
+  return Math.floor(diffTime / (1000 * 60 * 60 * 24));
 };
 
 // 隐藏键盘
@@ -477,12 +507,10 @@ const hideKeyboard = () => {
 const handleTimeConfirm = (e) => {
   try {
     let date;
-    // 处理uView时间选择器返回的格式（可能是对象或字符串）
     if (typeof e === 'object') {
-      // 从对象构造日期（年、月、日、时、分、秒）
       date = new Date(
         e.year, 
-        e.month - 1, // 月份从0开始，需减1
+        e.month - 1,
         e.day, 
         e.hour, 
         e.minute, 
@@ -496,7 +524,6 @@ const handleTimeConfirm = (e) => {
       throw new Error('无效的时间格式');
     }
     
-    // 格式化为 "yyyy-MM-dd HH:mm:ss"（后端可直接解析）
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -513,10 +540,8 @@ const handleTimeConfirm = (e) => {
   }
 };
 
-
 // 重置表单
 const resetForm = () => {
-  // 重置数据
   formData.value = {
     brand: '',
     batchNo: '',
@@ -524,10 +549,8 @@ const resetForm = () => {
     joinTime: ''
   };
   
-  // 使用uView的表单重置方法
   if (batchForm.value) {
     try {
-      // uView的表单重置方法可能是$reset或其他名称
       if (batchForm.value.$reset) {
         batchForm.value.$reset();
       } else if (batchForm.value.resetValidation) {
@@ -541,32 +564,29 @@ const resetForm = () => {
   }
 };
 
-// 取消按钮事件（明确关闭弹窗）
+// 取消按钮事件
 const handleCancel = () => {
   showFormModal.value = false;
   console.log('取消按钮点击，关闭弹窗');
 };
 
-// 确认按钮事件（提交数据）
+// 确认按钮事件
 const handleConfirm = async () => {
   if (!batchForm.value) {
     uni.$u.toast('表单初始化失败');
     return;
   }
   
-  // 1. 校验当前工单ID是否存在（必传参数）
   if (!myOrder.value.id) {
     uni.$u.toast('未获取到当前工单信息，无法提交');
     return;
   }
   
   try {
-    // 2. 表单验证（使用uView表单验证）
     let valid = false;
     if (batchForm.value.validate) {
-      valid = await batchForm.value.validate(); // 全表单验证
+      valid = await batchForm.value.validate();
     } else {
-      // 降级手动验证
       valid = formData.value.brand && formData.value.batchNo && formData.value.weight && formData.value.joinTime;
       if (!valid) {
         uni.$u.toast('请填写所有必填项');
@@ -575,42 +595,37 @@ const handleConfirm = async () => {
     }
     if (!valid) return;
     
-    // 3. 构造提交数据（与后端字段对应）
     const submitData = {
-      brand: formData.value.brand.trim(), // 牌号
-      batchNumber: formData.value.batchNo.trim(), // 批次号（对应后端batch_number）
-      weight: Number(formData.value.weight), // 重量（转为数字）
-      operateTime: formData.value.joinTime, // 操作时间（对应后端operate_time）
-      exitWorkOrderId: myOrder.value.id // 核心：当前工单ID（对应后端exit_work_order_id）
+      brand: formData.value.brand.trim(),
+      batchNumber: formData.value.batchNo.trim(),
+      weight: Number(formData.value.weight),
+      operateTime: formData.value.joinTime,
+      exitWorkOrderId: myOrder.value.id
     };
     
-    // 4. 调用后端添加退出烟叶接口
     const result = await request({
-      url: '/api/tobaccos/addExit', // 与后端Controller接口路径一致
+      url: '/api/tobaccos/addExit',
       method: 'POST',
       data: submitData
     });
     
-    // 5. 接口成功：更新前端列表 + 关闭弹窗
-    exitTobaccoList.value.unshift(result.data); // 后端返回的新增记录
+    exitTobaccoList.value.unshift(result.data);
     resetForm();
     showFormModal.value = false;
     uni.$u.toast('添加退出烟叶成功');
     setTimeout(() => {
-  fetchAllExitTobaccos();
-}, 500);
+      fetchAllExitTobaccos();
+    }, 500);
     
   } catch (error) {
-    // 6. 错误处理（后端返回的业务异常或网络错误）
     uni.$u.toast('是否重复添加');
   }
 };
 
-// 打开表单弹窗（用于加入按钮）
+// 打开表单弹窗
 const openFormModal = () => {
   resetForm();
   
-  // 1. 填充当前工单的牌号和批次号（如果存在）
   if (myOrder.value.brand) {
     formData.value.brand = myOrder.value.brand;
   }
@@ -618,7 +633,6 @@ const openFormModal = () => {
     formData.value.batchNo = myOrder.value.batchNo;
   }
   
-  // 2. 默认当前时间为操作时间（格式与后端匹配）
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -631,14 +645,10 @@ const openFormModal = () => {
   showFormModal.value = true;
 };
 
-// 计算属性：判断是否所有图片都已上传
+// 计算属性：判断是否所有必要图片都已选择
 const isAllImagesUploaded = computed(() => {
-  return form.value.imagesBrand.length >= 1 &&
-         form.value.imagesWidth.length >= 1 &&
-         form.value.imagesJunk.length >= 1;
+  return form.value.imagesBrand.length > 0 && form.value.imagesWidth.length > 0;
 });
-
-// 注意：此计算属性在模板中用于控制提交按钮的禁用状态，请勿删除
 
 // 从全局状态获取工单信息
 const getDataFromGlobal = () => {
@@ -662,7 +672,6 @@ const getDataFromGlobal = () => {
 onLoad((options) => {
   console.log('接收的URL参数:', options);
   if (options && (options.id || options.batchNo || options.brand)) {
-    // 优先使用URL参数设置工单信息
     myOrder.value = {
       id: options.id ? decodeURIComponent(options.id) : '',
       batchNo: options.batchNo ? decodeURIComponent(options.batchNo) : '',
@@ -670,16 +679,73 @@ onLoad((options) => {
     };
     console.log('通过URL参数设置的工单信息:', myOrder.value);
     
-    // 如果URL参数中没有完整信息，尝试从全局状态补充
     if (!myOrder.value.id || !myOrder.value.batchNo || !myOrder.value.brand) {
       const globalDataSuccess = getDataFromGlobal();
       console.log('从全局状态补充工单信息结果:', globalDataSuccess);
     }
   } else {
-    // 如果没有URL参数，尝试从全局状态获取
     getDataFromGlobal();
   }
+  
+  loadExistingCheckRecord();
 });
+
+// 加载历史检查记录
+const loadExistingCheckRecord = async () => {
+  if (!myOrder.value || !myOrder.value.batchNo) return;
+  
+  try {
+    console.log('加载历史检查记录，参数:', myOrder.value.batchNo, "切丝机");
+    const res = await byBatchIdAndSegment(myOrder.value.batchNo, "切丝机");
+    console.log('历史检查记录返回数据:', res);
+    
+    // 清空旧数据
+    form.value.imagesBrand = [];
+    form.value.imagesWidth = [];
+    form.value.imagesJunk = [];
+    form.value.junkRemark = '';
+
+    if (res && res.verificationResult) {
+        const verificationResult = typeof res.verificationResult === 'string'
+          ? JSON.parse(res.verificationResult)
+          : res.verificationResult;
+        
+        console.log('解析后的verificationResult:', verificationResult);
+        
+        const images = verificationResult.images || {};
+        console.log('需要回显的图片数据:', images);
+
+        const processImageUrls = (urls) => {
+          if (!urls || !Array.isArray(urls)) return [];
+          return urls.map(item => typeof item === 'string' ? item : (item.url || ''))
+                    .filter(url => url);
+        };
+        
+        if (brandUploadRef.value && brandUploadRef.value.setPreviewImages) {
+          brandUploadRef.value.setPreviewImages(processImageUrls(images.imagesBrand));
+        }
+        if (widthUploadRef.value && widthUploadRef.value.setPreviewImages) {
+          widthUploadRef.value.setPreviewImages(processImageUrls(images.imagesWidth));
+        }
+        if (junkUploadRef.value && junkUploadRef.value.setPreviewImages) {
+          junkUploadRef.value.setPreviewImages(processImageUrls(images.imagesJunk));
+        }
+      
+      if (verificationResult.junkRemark) {
+        form.value.junkRemark = verificationResult.junkRemark;
+      }
+      
+      hasSubmitted.value = true;
+      console.log('历史记录加载成功，图片和备注已回显');
+    } else {
+      console.log('无历史检查记录或数据格式不正确');
+      hasSubmitted.value = false;
+    }
+  } catch (error) {
+    console.error('加载历史检查记录失败:', error);
+    hasSubmitted.value = false;
+  }
+};
 
 // 页面挂载后初始化数据
 onMounted(async () => {
@@ -687,74 +753,93 @@ onMounted(async () => {
     console.log('挂载后尝试获取全局数据...');
     getDataFromGlobal();
   }
-  await initData(); // 异步初始化数据，从后端获取烟叶列表（已包含退出烟叶列表的获取）
+  await initData();
 });
 
-// 图片上传处理
-const onAfterRead = (e, imageType = 'images') => {
-  const { file } = e
-  const uploadFiles = Array.isArray(file) ? file : [file]
-  
-  if (!form.value[imageType]) {
-    form.value[imageType] = []
-  }
-  
-  uploadFiles.forEach(f => {
-    const tempPath = f.path || f.url || f.tempFilePath
-
-    if (!tempPath) {
-      uni.$u.toast('获取图片失败')
-      return
-    }
-
-    form.value[imageType].push({
-      url: tempPath,
-      name: f.name || 'image.jpg',
-      status: 'ready'
-    })
-  })
+// 图片上传成功处理
+const handleImageUploadSuccess = (e, imageType = 'images') => {
+  const { file } = e;
+  form.value[imageType] = [{
+    url: file.previewUrl || file.localPreviewUrl,
+    name: file.fileName || file.selectedFileName || 'image.jpg'
+  }];
 };
 
-// 删除图片
-const onDeleteImage = (e, imageType = 'images') => {
-  const { index } = e
-  if (form.value[imageType] && form.value[imageType].length > index) {
-    form.value[imageType].splice(index, 1);
-  }
+// 图片移除处理
+const handleImageRemove = (e, imageType = 'images') => {
+  form.value[imageType] = [];
 };
 
 // 提交图片信息
 const publish = async () => {
-  if (!isAllImagesUploaded.value) {
-    uni.$u.toast('请上传所有必要的图片');
-    return;
-  }
-
   if (submitting.value) return;
   submitting.value = true;
 
   try {
-    const submitData = {
-      ...form.value,
-      orderId: myOrder.value.id,
-      batchNo: myOrder.value.batchNo
-    };
+    const uploadPromises = [];
+    if (brandUploadRef.value) uploadPromises.push(brandUploadRef.value.triggerUpload());
+    if (widthUploadRef.value) uploadPromises.push(widthUploadRef.value.triggerUpload());
+    if (junkUploadRef.value) uploadPromises.push(junkUploadRef.value.triggerUpload());
 
-    const result = await uploadFilesWithForm('/api/cutting-machine/submit', submitData);
+    const allResults = await Promise.all(uploadPromises);
     
-    if (result && result.code === 0) {
-      uni.$u.toast('图片信息提交成功');
-    } else {
-      uni.$u.toast('提交失败：' + (result?.message || '未知错误'));
+    const failedUploads = allResults.flat().filter(r => !r.success);
+    if (failedUploads.length > 0) {
+      uni.showToast({
+        title: `${failedUploads.length}张图片上传失败`,
+        icon: 'none'
+      });
+      return;
     }
+
+    const imagesBrand = brandUploadRef.value.getAllImageUrls();
+    const imagesWidth = widthUploadRef.value.getAllImageUrls();
+    const imagesJunk = junkUploadRef.value.getAllImageUrls();
+
+    const verificationResult = {
+      images: {
+        imagesBrand,
+        imagesWidth,
+        imagesJunk
+      },
+      junkRemark: form.value.junkRemark,
+      state: "normal"
+    };
+    
+    const submitData = {
+      batchId: myOrder.value.batchNo,
+      brand: myOrder.value.brand,
+      segment: "切丝机",
+      verificationResult: verificationResult,
+      dataCount: 2,
+      operatorId: uni.getStorageSync('userId') || ''
+    };
+    
+    console.log('准备提交的数据:', submitData);
+    
+    const res = await submitMaterialCheck(submitData);
+    console.log('API调用成功，返回数据:', res);
+    
+    uni.showModal({
+      title: '提交成功',
+      content: '您的表单已成功提交！',
+      showCancel: false,
+      success: () => {
+        hasSubmitted.value = true;
+      }
+    });
   } catch (error) {
     console.error('提交失败:', error);
-    uni.$u.toast('提交失败，请重试');
+    uni.showToast({
+      title: error.message || '提交失败，请重试',
+      icon: 'none'
+    });
   } finally {
     submitting.value = false;
   }
 };
-// 显示移除确认对话框（保持原有触发逻辑，修改确认后的处理）
+
+// 显示移除确认对话框
 const showRemoveConfirm = (item, index) => {
   try {
     console.log('触发移除确认函数：', item, index);
@@ -765,7 +850,6 @@ const showRemoveConfirm = (item, index) => {
       content: `确定要从本批料中移除烟叶「${brandName}」吗？`,
       success: (res) => {
         if (res.confirm) {
-          // 用户确认后，直接调用移除接口（替换原confirmOperation）
           removeTobacco(item, index); 
         }
       },
@@ -780,9 +864,8 @@ const showRemoveConfirm = (item, index) => {
   }
 };
 
-// 新增：调用后端移除接口并更新列表
+// 调用后端移除接口并更新列表
 const removeTobacco = async (item, index) => {
-  // 1. 校验必要参数
   if (!myOrder.value.id) {
     uni.$u.toast('未获取到当前工单信息，无法移除');
     return;
@@ -792,37 +875,32 @@ const removeTobacco = async (item, index) => {
     return;
   }
 
-  // 2. 显示加载状态
   uni.showLoading({ title: '移除中...', mask: true });
 
   try {
-    // 3. 调用后端移除接口
     const params = {
       brand: item.brand,
       batchNumber: item.batchNumber,
-      addWorkOrderId: myOrder.value.id // 当前工单ID（关联的加入工单ID）
+      addWorkOrderId: myOrder.value.id
     };
-    const result = await request({
+    await request({
       url: '/api/tobaccos/remove',
       method: 'PUT',
       data: params
     });
 
-    // 4. 接口成功：刷新已加入列表（确保与后端同步）
     await fetchAddedTobaccosByWorkOrderId(myOrder.value.id);
-    // 可选：如果需要将移除的烟叶加入"退出列表"，可调用fetchAllExitTobaccos刷新
     await fetchAllExitTobaccos();
     uni.$u.toast('移除成功');
   } catch (error) {
-    // 5. 错误处理
     console.error('移除接口调用失败：', error);
     uni.$u.toast(error.message || '移除失败，请重试');
   } finally {
-    // 6. 关闭加载状态
     uni.hideLoading();
   }
 };
-// 将烟叶加入批次（替换原逻辑，直接调用接口）
+
+// 将烟叶加入批次
 const addToBatch = (item, index) => {
   try {
     const brandName = item.brand || '未知品牌';
@@ -832,7 +910,7 @@ const addToBatch = (item, index) => {
       content: `确定要将烟叶「${brandName}」加入本批料吗？`,
       success: (res) => {
         if (res.confirm) {
-          addTobaccoToBatch(item, index); // 调用新增的接口方法
+          addTobaccoToBatch(item, index);
         }
       },
       fail: (err) => {
@@ -847,9 +925,8 @@ const addToBatch = (item, index) => {
   }
 };
 
-// 调用后端“加入批次”接口并更新列表
+// 调用后端"加入批次"接口并更新列表
 const addTobaccoToBatch = async (item, index) => {
-  // 1. 校验必要参数
   if (!myOrder.value.id) {
     uni.$u.toast('未获取到当前工单信息，无法加入');
     return;
@@ -859,57 +936,46 @@ const addTobaccoToBatch = async (item, index) => {
     return;
   }
 
-  // 2. 显示加载状态
   uni.showLoading({ title: '加入中...', mask: true });
 
   try {
-    // 3. 调用后端接口（传递牌号、批次号、当前工单ID）
     const params = {
       brand: item.brand,
       batchNumber: item.batchNumber,
-      addWorkOrderId: myOrder.value.id // 当前工单ID（加入的目标工单）
+      addWorkOrderId: myOrder.value.id
     };
-    const result = await request({
+    await request({
       url: '/api/tobaccos/add',
       method: 'PUT',
       data: params
     });
 
-    // 4. 接口成功：刷新列表（确保与后端同步）
-    await fetchAddedTobaccosByWorkOrderId(myOrder.value.id); // 刷新已加入列表
-    await fetchAllExitTobaccos(); // 刷新退出列表
+    await fetchAddedTobaccosByWorkOrderId(myOrder.value.id);
+    await fetchAllExitTobaccos();
     uni.$u.toast('加入成功');
   } catch (error) {
-    // 5. 错误处理
     console.error('加入接口调用失败：', error);
     uni.$u.toast(error.message || '加入失败，请重试');
   } finally {
-    // 6. 关闭加载状态
     uni.hideLoading();
   }
 };
 
-// 初始化数据 - 从后端获取数据
+// 初始化数据
 const initData = async () => {
-  // 设置加载状态并清除错误信息
   loading.value = true;
   errorMsg.value = '';
   
   try {
-      const app = getApp();
-    // 1. 先获取当前工单ID（从myOrder中取）
-    console.log('myOrder.value:', myOrder.value);
+    const app = getApp();
     const currentWorkOrderId = myOrder.value.id || app.globalData.currentOrder?.id;
     if (currentWorkOrderId) {
-      // 2. 调用新增的接口，根据工单ID查询已加入的烟叶
       await fetchAddedTobaccosByWorkOrderId(currentWorkOrderId);
     } else {
       console.warn('当前工单ID不存在，不查询已加入烟叶');
-      addedTobaccoList.value = []; // 清空列表
+      addedTobaccoList.value = [];
     }
     
-    
-    // 同时获取退出烟叶列表
     await fetchAllExitTobaccos();
     
   } catch (err) {
@@ -923,6 +989,7 @@ const initData = async () => {
 </script>
 
 <style scoped>
+/* 样式保持不变 + 新增提示标签样式 */
 .container {
   padding: 20rpx;
   background-color: #f5f5f5;
@@ -1088,6 +1155,25 @@ const initData = async () => {
   margin-bottom: 16rpx;
   width: 100%;
   box-sizing: border-box;
+  position: relative; /* 为提示标签添加定位 */
+}
+
+/* 新增：提示标签样式 */
+.prompt-tag {
+  position: absolute;
+  top: 10rpx;
+  right: 10rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 16rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+  color: #fff;
+}
+.same-brand {
+  background-color: #4096ff; /* 蓝色 - 同牌号掺兑 */
+}
+.downgrade {
+  background-color: #fa8c16; /* 橙色 - 降级掺兑 */
 }
 
 .tobacco-info {
@@ -1100,7 +1186,7 @@ const initData = async () => {
   margin-bottom: 10rpx;
   line-height: 1.5;
   white-space: nowrap;
-  align-items: center; /* 新增：确保标签和内容垂直居中 */
+  align-items: center;
 }
 
 .info-row:last-child {
@@ -1114,8 +1200,6 @@ const initData = async () => {
   flex-shrink: 0;
 }
 
-/* 新增：替换原.value的样式，用于包裹文本和标签的容器 */
-/* 优化牌号和标签的容器样式 */
 .value-wrapper {
   font-size: 26rpx;
   color: #333;
@@ -1124,23 +1208,21 @@ const initData = async () => {
   display: flex;
   align-items: center;
   gap: 8rpx;
-  min-width: 0; /* 允许容器在必要时收缩 */
+  min-width: 0;
 }
 
-/* 牌号文本样式 */
 .brand-text {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex-shrink: 1; /* 文本可以被压缩 */
+  flex-shrink: 1;
 }
 
-/* 超时标签样式优化 */
 .timeout-tag {
-  white-space: nowrap; /* 确保标签文本不换行 */
-  flex-shrink: 0; /* 标签不被压缩 */
-  padding: 2rpx 8rpx; /* 减小内边距，适应小空间 */
-  line-height: 1.2; /* 调整行高，避免垂直溢出 */
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding: 2rpx 8rpx;
+  line-height: 1.2;
   margin-left: 8rpx;
   vertical-align: middle;
 }
@@ -1198,7 +1280,7 @@ const initData = async () => {
   }
   
   .timeout-tag {
-    font-size: 20rpx; /* 小屏幕上进一步减小标签字体 */
+    font-size: 20rpx;
     padding: 1rpx 6rpx;
   }
   
@@ -1207,7 +1289,6 @@ const initData = async () => {
   }
 }
 
-/* 表单弹窗按钮样式优化 */
 .modal-btn {
   min-width: 140rpx;
   padding: 0 25rpx;
@@ -1220,9 +1301,9 @@ const initData = async () => {
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  white-space: nowrap; /* 禁止文字换行 */
-  overflow: visible; /* 允许文字完整显示 */
-  z-index: 999; /* 确保按钮在最上层，不被遮挡 */
+  white-space: nowrap;
+  overflow: visible;
+  z-index: 999;
 }
 
 .cancel {
@@ -1237,38 +1318,33 @@ const initData = async () => {
   border: none;
 }
 
-/* 弹窗底部容器样式 */
 :deep(.up-modal__footer) {
   border-top: 1px solid #f5f5f5;
   padding: 15rpx 20rpx;
   display: flex;
-  justify-content: center; /* 按钮居中分布 */
+  justify-content: center;
   align-items: center;
   box-sizing: border-box;
   width: 100%;
-  overflow: visible; /* 避免容器遮挡按钮 */
+  overflow: visible;
 }
 
-/* 弹窗内容区域样式 */
 :deep(.up-modal__body) {
   padding: 30rpx 20rpx;
   overflow: visible;
 }
 
-/* 修复表单验证提示位置 */
 :deep(.u-form-item__error-message) {
-  margin-left: 140rpx; /* 与标签对齐 */
+  margin-left: 140rpx;
   font-size: 24rpx;
   color: #ff4d4f;
 }
 
-/* 加载状态样式 */
 .loading {
   padding: 60rpx 0;
   text-align: center;
 }
 
-/* 错误提示样式 */
 .error-msg {
   padding: 60rpx 0;
   text-align: center;

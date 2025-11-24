@@ -217,17 +217,20 @@
 	        "path" : "pages/position/flavoring-machine",
 	        "style" : 
 	        {
-	            "navigationBarTitleText" : " 加香机"
+	        "navigationBarTitleText" : " 加香机"
 	        }
-	        
-	    },
-	    {
+	    },{
+	        "path" : "pages/position/residual-tobacco",
+	        "style" : 
+	        {
+	        "navigationBarTitleText" : " 残烟丝"
+	        }
+	    },{
 	        "path" : "pages/position/silk-mixing-cabinet",
 	        "style" : 
 	        {
-	            "navigationBarTitleText" : " 混丝柜"
+	    "navigationBarTitleText" : " 混丝柜"
 	        }
-	        
 	    },
 	    
 	    {

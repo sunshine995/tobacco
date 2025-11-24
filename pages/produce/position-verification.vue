@@ -1,8 +1,7 @@
 <template>
   <view class="position-verification-container">
-    <!-- 工单信息展示区域 - 简化为普通view元素 -->
+    <!-- 工单信息展示区域 -->
     <view class="work-order-info-card">
-      
       <view class="order-info-content">
         <view class="info-row">
           <view class="info-label">批次号</view>
@@ -13,10 +12,9 @@
           <view class="info-value">{{ orderInfo.brand }}</view>
         </view>
       </view>
-    
     </view>
-    
-    <!-- 页面主体内容 - 使用uview-plus组件 -->
+
+    <!-- 页面主体内容 -->
     <u-card class="main-content-card" :border="false" shadow>
       <template #title>
         <view class="section-title">岗位验证</view>
@@ -24,757 +22,388 @@
       <template #body>
         <!-- 岗位列表展示 -->
         <view class="position-list">
-          <view class="position-item" @click="navigateToStripTobaccoWarehousing">
-            <view class="position-header">
-              <view class="position-name">{{ positions[0].name }}</view>
+          <view 
+            class="position-item" 
+            v-for="(position, index) in positions" 
+            :key="index"
+            @click="handleNavigate(position.path)"
+          >
+            <!-- 第一行：名称 + 动态进度文本（分子=数据库data_count，分母=岗位自定义totalCount） -->
+            <view class="item-row first-row">
+              <view class="item-name">{{ position.name }}</view>
+              <!-- 进度文本：当data_count === totalCount时变绿 -->
+              <view 
+                :class="['position-status', 
+                  position.hasCurrentBatchStatus ? 'verified' : 'unverified',
+                  position.dataCount === position.totalCount ? 'completed-green' : ''
+                ]"
+              >
+                {{ getVerificationProgress(position) }}
+              </view>
             </view>
-            <view :class="['position-status', getStatusClass(positions[0])]">
-              {{ getPositionStatusText(positions[0]) }}
-            </view>
-          </view>
-          
-          <view class="position-item" @click="navigateToRobotArm">
-            <view class="position-header">
-              <view class="position-name">{{ positions[1].name }}</view>
-            </view>
-            <view :class="['position-status', getStatusClass(positions[1])]">
-              {{ getPositionStatusText(positions[1]) }}
-            </view>
-          </view>
-          
-          <view class="position-item" @click="navigateToSlicingMachine">
-            <view class="position-header">
-              <view class="position-name">{{ positions[3].name }}</view>
-            </view>
-            <view :class="['position-status', getStatusClass(positions[2])]">
-              {{ getPositionStatusText(positions[3]) }}
-            </view>
-          </view>
-          
-          <view class="position-item" @click="navigateToVacuumReconditioning">
-            <view class="position-header">
-              <view class="position-name">{{ positions[2].name }}</view>
-            </view>
-            <view :class="['position-status', getStatusClass(positions[3])]">
-              {{ getPositionStatusText(positions[2]) }}
-            </view>
-          </view>
-          
-          <view class="position-item" @click="navigateToBoxTurningMachine">
-            <view class="position-header">
-              <view class="position-name">{{ positions[4].name }}</view>
-            </view>
-            <view :class="['position-status', getStatusClass(positions[4])]">
-              {{ getPositionStatusText(positions[4]) }}
-            </view>
-          </view>
-          
-          <view class="position-item" @click="navigateToLooseMoisture">
-            <view class="position-header">
-              <view class="position-name">{{ positions[5].name }}</view>
-            </view>
-            <view :class="['position-status', getStatusClass(positions[5])]">
-              {{ getPositionStatusText(positions[5]) }}
-            </view>
-          </view>
-          
-          <view class="position-item" @click="navigateToLaserCleaning">
-            <view class="position-header">
-              <view class="position-name">{{ positions[6].name }}</view>
-            </view>
-            <view :class="['position-status', getStatusClass(positions[6])]">
-              {{ getPositionStatusText(positions[6]) }}
-            </view>
-          </view>
-          
-          <view class="position-item" @click="navigateToPreMixCabinet">
-            <view class="position-header">
-              <view class="position-name">{{ positions[7].name }}</view>
-            </view>
-            <view :class="['position-status', getStatusClass(positions[7])]">
-              {{ getPositionStatusText(positions[7]) }}
-            </view>
-          </view>
-          
-          <view class="position-item" @click="navigateToFeedingMachine">
-            <view class="position-header">
-              <view class="position-name">{{ positions[8].name }}</view>
-            </view>
-            <view :class="['position-status', getStatusClass(positions[8])]">
-              {{ getPositionStatusText(positions[8]) }}
-            </view>
-          </view>
-          
-          <view class="position-item" @click="navigateToLeafStorageCabinet">
-            <view class="position-header">
-              <view class="position-name">{{ positions[9].name }}</view>
-            </view>
-            <view :class="['position-status', getStatusClass(positions[9])]">
-              {{ getPositionStatusText(positions[9]) }}
-            </view>
-          </view>
-          
-          <view class="position-item" @click="navigateToTemperatureHumidity">
-            <view class="position-header">
-              <view class="position-name">{{ positions[10].name }}</view>
-            </view>
-            <view :class="['position-status', getStatusClass(positions[10])]">
-              {{ getPositionStatusText(positions[10]) }}
-            </view>
-          </view>
-          
-          <view class="position-item" @click="navigateToCuttingMachine">
-            <view class="position-header">
-              <view class="position-name">{{ positions[11].name }}</view>
-            </view>
-            <view :class="['position-status', getStatusClass(positions[11])]">
-              {{ getPositionStatusText(positions[11]) }}
-            </view>
-          </view>
-          
-          <view class="position-item" @click="navigateToDryingMachine">
-            <view class="position-header">
-              <view class="position-name">{{ positions[12].name }}</view>
-            </view>
-            <view :class="['position-status', getStatusClass(positions[12])]">
-              {{ getPositionStatusText(positions[12]) }}
-            </view>
-          </view>
-          
-          <view class="position-item" @click="navigateToExpandedTobacco">
-            <view class="position-header">
-              <view class="position-name">{{ positions[13].name }}</view>
-            </view>
-            <view :class="['position-status', getStatusClass(positions[13])]">
-              {{ getPositionStatusText(positions[13]) }}
-            </view>
-          </view>
-          
-          <view class="position-item" @click="navigateToFlavoringMachine">
-            <view class="position-header">
-              <view class="position-name">{{ positions[14].name }}</view>
-            </view>
-            <view :class="['position-status', getStatusClass(positions[14])]">
-              {{ getPositionStatusText(positions[14]) }}
-            </view>
-          </view>
-          
-          <view class="position-item" @click="navigateToSilkMixingCabinet">
-            <view class="position-header">
-              <view class="position-name">{{ positions[15].name }}</view>
-            </view>
-            <view :class="['position-status', getStatusClass(positions[15])]">
-              {{ getPositionStatusText(positions[15]) }}
-            </view>
-          </view>
-          
-          <view class="position-item" @click="navigateToPackingStation">
-            <view class="position-header">
-              <view class="position-name">{{ positions[16].name }}</view>
-            </view>
-            <view :class="['position-status', getStatusClass(positions[16])]">
-              {{ getPositionStatusText(positions[16]) }}
-            </view>
-          </view>
-          
-          <view class="position-item" @click="navigateToSilkStorage">
-            <view class="position-header">
-              <view class="position-name">{{ positions[17].name }}</view>
-            </view>
-            <view :class="['position-status', getStatusClass(positions[17])]">
-              {{ getPositionStatusText(positions[17]) }}
+
+            <!-- 第二行：4级验证（基于current_step + 已完成状态动态变色） -->
+            <view class="item-row second-row">
+              <view class="verification-levels">
+                <!-- 1级验证：已完成（dataCount===totalCount） 或 currentStep>=1 变绿 -->
+                <view class="verification-level">
+                  <view 
+                    :class="['level-number', 
+                      { 'completed': isLevel1Completed(position) }
+                    ]"
+                  >
+                    1级验证
+                  </view>
+                </view>
+                <!-- 2级验证：current_step >= 2 变绿 -->
+                <view class="verification-level">
+                  <view 
+                    :class="['level-number', 
+                      { 'completed': getIsLevelCompleted(position, 2) }
+                    ]"
+                  >
+                    2级验证
+                  </view>
+                </view>
+                <!-- 3级验证：current_step >= 3 变绿 -->
+                <view class="verification-level">
+                  <view 
+                    :class="['level-number', 
+                      { 'completed': getIsLevelCompleted(position, 3) }
+                    ]"
+                  >
+                    3级验证
+                  </view>
+                </view>
+                <!-- 4级验证：current_step >= 4 变绿 -->
+                <view class="verification-level">
+                  <view 
+                    :class="['level-number', 
+                      { 'completed': getIsLevelCompleted(position, 4) }
+                    ]"
+                  >
+                    4级验证
+                  </view>
+                </view>
+              </view>
             </view>
           </view>
         </view>
       </template>
     </u-card>
-    
-    <!-- 使用uview-plus的提示框组件 -->
     <u-toast ref="uToast" />
   </view>
 </template>
 
 <script setup>
-import { ref, onMounted, reactive, computed } from 'vue'
+import { ref, onMounted, reactive } from 'vue'
+import { byBatchIdAndSegment } from '@/api/production.js'
 
-// 确保所有导航函数在模板中可用
-// 由于使用<script setup>，所有定义的函数和变量会自动暴露给模板
-
-// 使用reactive代替ref，更适合复杂对象
+// 工单信息（当前批次+品牌）
 const orderInfo = reactive({
+  id: '',
   batchNo: '',
   brand: '',
   line: '',
   yield: '',
   createTime: '',
-  remark: ''
+  remark: '',
+  number: ''
 })
 
-// 岗位验证状态数据
+// 页面加载时获取URL参数
+onMounted(async () => {
+  // 从URL参数获取订单信息
+  const pages = getCurrentPages()
+  const currentPage = pages[pages.length - 1]
+  const options = currentPage.options || {}
+  
+  // 从URL参数更新orderInfo
+  if (options.id) orderInfo.id = decodeURIComponent(options.id)
+  if (options.batchNo) orderInfo.batchNo = decodeURIComponent(options.batchNo)
+  if (options.brand) orderInfo.brand = decodeURIComponent(options.brand)
+  if (options.number) orderInfo.number = decodeURIComponent(options.number)
+  if (options.yield) orderInfo.yield = decodeURIComponent(options.yield)
+  
+  console.log('position-verification - URL参数获取到的订单信息:', orderInfo)
+  
+  // 尝试从全局获取数据（作为补充）
+  let success = getDataFromGlobal()
+  if (!success) setTimeout(getDataFromGlobal, 300)
+  
+  setTimeout(async () => {
+    if (!orderInfo.batchNo) return
+
+    try {
+      for (const position of positions) {
+        try {
+          const result = await byBatchIdAndSegment(orderInfo.batchNo, position.segment)
+          if (result) {
+            position.hasCurrentBatchStatus = true
+            position.verificationStatus = result.verificationResult?.status || ''
+            position.currentStep = result.verificationResult?.current_step || 0
+            position.dataCount = result.dataCount || 0 // 注意接口字段（是dataCount还是data_count）
+            
+            // 调试日志
+            console.log(`岗位：${position.name}`)
+            console.log(`  - 进度：${position.dataCount}/${position.totalCount}`)
+            console.log(`  - currentStep：${position.currentStep}`)
+          }
+        } catch (error) {
+          console.error(`查询${position.name}验证状态失败:`, error)
+          position.hasCurrentBatchStatus = false
+          position.dataCount = 0
+          position.currentStep = 0
+        }
+      }
+    } catch (e) {
+      console.error('查询验证状态失败:', e)
+    }
+  }, 500)
+})
+
+// 岗位验证状态数据（每个岗位配置：自定义分母totalCount + 接口返回的分子dataCount）
 const positions = reactive([
   {
     name: '片烟出库验证',
-    totalSteps: 4,
-    completedSteps: 0,
-    status: false
+    segment: '片烟出库',
+    path: 'strip-tobacco-warehousing',
+    verificationStatus: '', 
+    currentStep: 0,         
+    hasCurrentBatchStatus: false,
+    totalCount: 2, 
+    dataCount: 0 
   },
   {
     name: '机械手验证',
-    totalSteps: 5,
-    completedSteps: 5,
-    status: true
+    segment: '机械手',
+    path: 'robot-arm',
+    verificationStatus: '',
+    currentStep: 0,
+    hasCurrentBatchStatus: false,
+    totalCount: 3, 
+    dataCount: 0
   },
   {
     name: '真空回潮验证',
-    totalSteps: 1,
-    completedSteps: 1,
-    status: true
+    segment: '真空回潮',
+    path: 'vacuum-reconditioning',
+    verificationStatus: '',
+    currentStep: 0,
+    hasCurrentBatchStatus: false,
+    totalCount: 4, 
+    dataCount: 0
   },
   {
     name: '切片机验证',
-    totalSteps: 1,
-    completedSteps: 0,
-    status: false
+    segment: '切片机',
+    path: 'slicing-machine',
+    verificationStatus: '',
+    currentStep: 0,
+    hasCurrentBatchStatus: false,
+    totalCount: 2, 
+    dataCount: 0
   },
   {
     name: '翻箱机验证',
-    totalSteps: 3,
-    completedSteps: 0,
-    status: false
+    segment: '翻箱机',
+    path: 'box-turning-machine',
+    verificationStatus: '',
+    currentStep: 0,
+    hasCurrentBatchStatus: false,
+    totalCount: 1, 
+    dataCount: 0
   },
   {
     name: '松散回潮验证',
-    totalSteps: 4,
-    completedSteps: 0,
-    status: false
+    segment: '松散回潮',
+    path: 'loose-moisture',
+    verificationStatus: '',
+    currentStep: 0,
+    hasCurrentBatchStatus: false,
+    totalCount: 3, 
+    dataCount: 0
   },
   {
     name: '激光除杂验证',
-    totalSteps: 2,
-    completedSteps: 0,
-    status: false
+    segment: '激光除杂',
+    path: 'laser-cleaning',
+    verificationStatus: '',
+    currentStep: 0,
+    hasCurrentBatchStatus: false,
+    totalCount: 2, 
+    dataCount: 0
   },
   {
     name: '预混柜验证',
-    totalSteps: 3,
-    completedSteps: 0,
-    status: false
+    segment: '预混柜',
+    path: 'pre-mix-cabinet',
+    verificationStatus: '',
+    currentStep: 0,
+    hasCurrentBatchStatus: false,
+    totalCount: 4, 
+    dataCount: 0
   },
   {
     name: '加料机验证',
-    totalSteps: 4,
-    completedSteps: 0,
-    status: false
+    segment: '加料机',
+    path: 'feeding-machine',
+    verificationStatus: '',
+    currentStep: 0,
+    hasCurrentBatchStatus: false,
+    totalCount: 5, 
+    dataCount: 0
   },
   {
     name: '储叶柜验证',
-    totalSteps: 2,
-    completedSteps: 0,
-    status: false
+    segment: '储叶柜',
+    path: 'leaf-storage-cabinet',
+    verificationStatus: '',
+    currentStep: 0,
+    hasCurrentBatchStatus: false,
+    totalCount: 2, 
+    dataCount: 0
   },
   {
     name: '增温增湿验证',
-    totalSteps: 3,
-    completedSteps: 0,
-    status: false
+    segment: '增温增湿',
+    path: 'temperature-humidity',
+    verificationStatus: '',
+    currentStep: 0,
+    hasCurrentBatchStatus: false,
+    totalCount: 3, 
+    dataCount: 0
   },
   {
     name: '切丝机验证',
-    totalSteps: 4,
-    completedSteps: 0,
-    status: false
+    segment: '切丝机',
+    path: 'cutting-machine',
+    verificationStatus: '',
+    currentStep: 0,
+    hasCurrentBatchStatus: false,
+    totalCount: 2, 
+    dataCount: 0
   },
   {
     name: '烘丝机验证',
-    totalSteps: 3,
-    completedSteps: 0,
-    status: false
+    segment: '烘丝机',
+    path: 'drying-machine',
+    verificationStatus: '',
+    currentStep: 0,
+    hasCurrentBatchStatus: false,
+    totalCount: 5, 
+    dataCount: 0
   },
   {
     name: '膨化烟丝掺对验证',
-    totalSteps: 3,
-    completedSteps: 0,
-    status: false
+    segment: '膨化烟丝',
+    path: 'expanded-tobacco',
+    verificationStatus: '',
+    currentStep: 0,
+    hasCurrentBatchStatus: false,
+    totalCount: 3, 
+    dataCount: 0
   },
   {
     name: '加香机验证',
-    totalSteps: 4,
-    completedSteps: 0,
-    status: false
+    segment: '加香机',
+    path: 'flavoring-machine',
+    verificationStatus: '',
+    currentStep: 0,
+    hasCurrentBatchStatus: false,
+    totalCount: 7, 
+    dataCount: 0
+  },
+  {
+    name: '残烟丝验证',
+    segment: '残烟丝',
+    path: 'residual-tobacco',
+    verificationStatus: '',
+    currentStep: 0,
+    hasCurrentBatchStatus: false,
+    totalCount: 3, 
+    dataCount: 0
   },
   {
     name: '混丝柜验证',
-    totalSteps: 2,
-    completedSteps: 0,
-    status: false
+    segment: '混丝柜',
+    path: 'silk-mixing-cabinet',
+    verificationStatus: '',
+    currentStep: 0,
+    hasCurrentBatchStatus: false,
+    totalCount: 3, 
+    dataCount: 0
   },
   {
     name: '装箱站验证',
-    totalSteps: 3,
-    completedSteps: 0,
-    status: false
+    segment: '装箱站',
+    path: 'packing-station',
+    verificationStatus: '',
+    currentStep: 0,
+    hasCurrentBatchStatus: false,
+    totalCount: 2, 
+    dataCount: 0
   },
   {
     name: '丝库验证',
-    totalSteps: 4,
-    completedSteps: 0,
-    status: false
+    segment: '丝库',
+    path: 'silk-storage',
+    verificationStatus: '',
+    currentStep: 0,
+    hasCurrentBatchStatus: false,
+    totalCount: 1, 
+    dataCount: 0
   }
 ])
 
-// 计算岗位状态文本
-const getPositionStatusText = (position) => {
-  if (position.totalSteps > 1) {
-    return `${position.completedSteps}/${position.totalSteps}${position.status ? '已验证' : '未验证'}`
-  } else {
-    return position.status ? '已验证' : '未验证'
+// 动态生成进度文本
+const getVerificationProgress = (position) => {
+  if (!position.hasCurrentBatchStatus) {
+    return `0/${position.totalCount} 未验证`
   }
+  const { dataCount, totalCount } = position
+  const statusText = dataCount >= totalCount ? '已完成' : '已验证'
+  return `${dataCount}/${totalCount} ${statusText}`
 }
 
-// 获取状态样式类名
-const getStatusClass = (position) => {
-  return position.status ? 'verified' : 'unverified'
+// 1级验证单独判断：已完成（dataCount===totalCount） 或 currentStep>=1 都变绿
+const isLevel1Completed = (position) => {
+  if (!position.hasCurrentBatchStatus) return false
+  // 条件：已完成 或 currentStep>=1
+  return position.dataCount === position.totalCount || position.currentStep >= 1
 }
 
-// 简化的Toast函数
-const showToast = (message) => {
-  uni.showToast({
-    title: message,
-    icon: 'none',
-    duration: 2000
-  })
+// 2-4级验证判断：currentStep >= 等级
+const getIsLevelCompleted = (position, level) => {
+  if (!position.hasCurrentBatchStatus) return false
+  return position.currentStep >= level
 }
 
-// 导航到生产页面
-const navigateToStripTobaccoWarehousing = () => {
+// 统一导航处理
+const handleNavigate = (path) => {
   try {
-    // 保存当前订单信息到全局，以便在目标页面使用
     const app = getApp()
     if (app && app.globalData) {
       app.globalData.currentOrder = { ...orderInfo }
     }
-    
     uni.navigateTo({
-      url: `/pages/position/strip-tobacco-warehousing?batchNo=${encodeURIComponent(orderInfo.batchNo)}&brand=${encodeURIComponent(orderInfo.brand)}`
+      url: `/pages/position/${path}?id=${encodeURIComponent(orderInfo.id)}&batchNo=${encodeURIComponent(orderInfo.batchNo)}&brand=${encodeURIComponent(orderInfo.brand)}&number=${encodeURIComponent(orderInfo.number)}&yield=${encodeURIComponent(orderInfo.yield || '')}`
     })
-  } catch (e) {
-    console.error('导航到生产页面失败:', e)
-    showToast('导航失败')
-  }
-}
-
-// 导航到工单详情页面
-const navigateToRelaxedMoisture = () => {
-  try {
-    // 保存当前订单信息到全局，以便在目标页面使用
-    const app = getApp()
-    if (app && app.globalData) {
-      app.globalData.currentOrder = { ...orderInfo }
-    }
-    
-    uni.navigateTo({
-      url: '/pages/produce/robot-arm'
-    })
-  } catch (e) {
-    console.error('导航到工单详情页面失败:', e)
-    showToast('导航失败')
-  }
-}
-
-// 导航到机械手操作页面
-const navigateToRobotArm = () => {
-  try {
-    // 保存订单信息到全局状态
-    const app = getApp()
-    if (app && app.globalData) {
-      app.globalData.currentOrder = { ...orderInfo }
-    }
-    // 跳转到机械手页面
-    uni.navigateTo({
-      url: `/pages/position/robot-arm?batchNo=${encodeURIComponent(orderInfo.batchNo)}&brand=${encodeURIComponent(orderInfo.brand)}`
-    })
-    console.log('导航到机械手操作页面')
   } catch (error) {
     console.error('导航失败:', error)
-    uni.showToast({
-      title: '导航失败',
-      icon: 'error'
-    })
+    uni.showToast({ title: '导航失败', icon: 'error' })
   }
 }
 
-// 导航到真空回潮页面
-const navigateToVacuumReconditioning = () => {
-  try {
-    // 保存订单信息到全局状态
-    const app = getApp()
-    if (app && app.globalData) {
-      app.globalData.currentOrder = { ...orderInfo }
-    }
-    // 跳转到真空回潮页面
-    uni.navigateTo({
-      url: '/pages/position/vacuum-reconditioning'
-    })
-    console.log('导航到真空回潮页面')
-  } catch (error) {
-    console.error('导航失败:', error)
-    uni.showToast({
-      title: '导航失败',
-      icon: 'error'
-    })
-  }
-}
-
-// 导航到切片机操作页面
-const navigateToSlicingMachine = () => {
-  try {
-    // 保存订单信息到全局状态
-    const app = getApp()
-    if (app && app.globalData) {
-      app.globalData.currentOrder = { ...orderInfo }
-    }
-    // 跳转到切片机页面
-    uni.navigateTo({
-      url: `/pages/position/slicing-machine?batchNo=${encodeURIComponent(orderInfo.batchNo)}&brand=${encodeURIComponent(orderInfo.brand)}`
-    })
-    console.log('导航到切片机操作页面')
-  } catch (error) {
-    console.error('导航失败:', error)
-    uni.showToast({
-      title: '导航失败',
-      icon: 'error'
-    })
-  }
-}
-
-// 导航到翻箱机页面
-const navigateToBoxTurningMachine = () => {
-  try {
-    // 保存订单信息到全局状态
-    const app = getApp()
-    if (app && app.globalData) {
-      app.globalData.currentOrder = { ...orderInfo }
-    }
-    // 跳转到翻箱机页面
-    uni.navigateTo({
-      url: '/pages/position/box-turning-machine'
-    })
-    console.log('导航到翻箱机页面')
-  } catch (error) {
-    console.error('导航失败:', error)
-    uni.showToast({
-      title: '导航失败',
-      icon: 'error'
-    })
-  }
-}
-
-// 导航到松散回潮页面
-const navigateToLooseMoisture = () => {
-  try {
-    // 保存订单信息到全局状态
-    const app = getApp()
-    if (app && app.globalData) {
-      app.globalData.currentOrder = { ...orderInfo }
-    }
-    // 跳转到松散回潮页面
-    uni.navigateTo({
-      url: '/pages/position/loose-moisture'
-    })
-    console.log('导航到松散回潮页面')
-  } catch (error) {
-    console.error('导航失败:', error)
-    uni.showToast({
-      title: '导航失败',
-      icon: 'error'
-    })
-  }
-}
-
-// 导航到激光除杂页面
-const navigateToLaserCleaning = () => {
-  try {
-    // 保存订单信息到全局状态
-    const app = getApp()
-    if (app && app.globalData) {
-      app.globalData.currentOrder = { ...orderInfo }
-    }
-    // 跳转到激光除杂页面
-    uni.navigateTo({
-      url: '/pages/position/laser-cleaning'
-    })
-    console.log('导航到激光除杂页面')
-  } catch (error) {
-    console.error('导航失败:', error)
-    uni.showToast({
-      title: '导航失败',
-      icon: 'error'
-    })
-  }
-}
-
-// 导航到预混柜页面
-const navigateToPreMixCabinet = () => {
-  try {
-    // 保存订单信息到全局状态
-    const app = getApp()
-    if (app && app.globalData) {
-      app.globalData.currentOrder = { ...orderInfo }
-    }
-    // 跳转到预混柜页面
-    uni.navigateTo({
-      url: '/pages/position/pre-mix-cabinet'
-    })
-    console.log('导航到预混柜页面')
-  } catch (error) {
-    console.error('导航失败:', error)
-    uni.showToast({
-      title: '导航失败',
-      icon: 'error'
-    })
-  }
-}
-
-// 导航到加料机页面
-const navigateToFeedingMachine = () => {
-  try {
-    // 保存订单信息到全局状态
-    const app = getApp()
-    if (app && app.globalData) {
-      app.globalData.currentOrder = { ...orderInfo }
-    }
-    // 跳转到加料机页面
-    uni.navigateTo({
-      url: '/pages/position/feeding-machine'
-    })
-    console.log('导航到加料机页面')
-  } catch (error) {
-    console.error('导航失败:', error)
-    uni.showToast({
-      title: '导航失败',
-      icon: 'error'
-    })
-  }
-}
-
-// 导航到储叶柜页面
-const navigateToLeafStorageCabinet = () => {
-  try {
-    // 保存订单信息到全局状态
-    const app = getApp()
-    if (app && app.globalData) {
-      app.globalData.currentOrder = { ...orderInfo }
-    }
-    // 跳转到储叶柜页面
-    uni.navigateTo({
-      url: '/pages/position/leaf-storage-cabinet'
-    })
-    console.log('导航到储叶柜页面')
-  } catch (error) {
-    console.error('导航失败:', error)
-    uni.showToast({
-      title: '导航失败',
-      icon: 'error'
-    })
-  }
-}
-
-// 导航到增温增湿页面
-const navigateToTemperatureHumidity = () => {
-  try {
-    // 保存订单信息到全局状态
-    const app = getApp()
-    if (app && app.globalData) {
-      app.globalData.currentOrder = { ...orderInfo }
-    }
-    // 跳转到增温增湿页面
-    uni.navigateTo({
-      url: `/pages/position/temperature-humidity?batchNo=${encodeURIComponent(orderInfo.batchNo)}&brand=${encodeURIComponent(orderInfo.brand)}`
-    })
-    console.log('导航到增温增湿页面')
-  } catch (error) {
-    console.error('导航失败:', error)
-    uni.showToast({
-      title: '导航失败',
-      icon: 'error'
-    })
-  }
-}
-
-// 导航到切丝机页面
-const navigateToCuttingMachine = () => {
-  try {
-    // 保存订单信息到全局状态
-    const app = getApp()
-    if (app && app.globalData) {
-      app.globalData.currentOrder = { ...orderInfo }
-    }
-    // 跳转到切丝机页面
-    uni.navigateTo({
-      url: `/pages/position/cutting-machine?batchNo=${encodeURIComponent(orderInfo.batchNo)}&brand=${encodeURIComponent(orderInfo.brand)}`
-    })
-    console.log('导航到切丝机页面')
-  } catch (error) {
-    console.error('导航失败:', error)
-    uni.showToast({
-      title: '导航失败',
-      icon: 'error'
-    })
-  }
-}
-
-// 导航到烘丝机页面
-const navigateToDryingMachine = () => {
-  try {
-    // 保存订单信息到全局状态
-    const app = getApp()
-    if (app && app.globalData) {
-      app.globalData.currentOrder = { ...orderInfo }
-    }
-    // 跳转到烘丝机页面
-    uni.navigateTo({
-      url: '/pages/position/drying-machine'
-    })
-    console.log('导航到烘丝机页面')
-  } catch (error) {
-    console.error('导航失败:', error)
-    uni.showToast({
-      title: '导航失败',
-      icon: 'error'
-    })
-  }
-}
-
-// 导航到膨化烟丝掺对页面
-const navigateToExpandedTobacco = () => {
-  try {
-    // 保存订单信息到全局状态
-    const app = getApp()
-    if (app && app.globalData) {
-      app.globalData.currentOrder = { ...orderInfo }
-    }
-    // 跳转到膨化烟丝掺对页面
-    uni.navigateTo({
-      url: '/pages/position/expanded-tobacco'
-    })
-    console.log('导航到膨化烟丝掺对页面')
-  } catch (error) {
-    console.error('导航失败:', error)
-    uni.showToast({
-      title: '导航失败',
-      icon: 'error'
-    })
-  }
-}
-
-// 导航到加香机页面
-const navigateToFlavoringMachine = () => {
-  try {
-    // 保存订单信息到全局状态
-    const app = getApp()
-    if (app && app.globalData) {
-      app.globalData.currentOrder = { ...orderInfo }
-    }
-    // 跳转到加香机页面
-    uni.navigateTo({
-      url: '/pages/position/flavoring-machine'
-    })
-    console.log('导航到加香机页面')
-  } catch (error) {
-    console.error('导航失败:', error)
-    uni.showToast({
-      title: '导航失败',
-      icon: 'error'
-    })
-  }
-}
-
-// 导航到混丝柜页面
-const navigateToSilkMixingCabinet = () => {
-  try {
-    // 保存订单信息到全局状态
-    const app = getApp()
-    if (app && app.globalData) {
-      app.globalData.currentOrder = { ...orderInfo }
-    }
-    // 跳转到混丝柜页面
-    uni.navigateTo({
-      url: '/pages/position/silk-mixing-cabinet'
-    })
-    console.log('导航到混丝柜页面')
-  } catch (error) {
-    console.error('导航失败:', error)
-    uni.showToast({
-      title: '导航失败',
-      icon: 'error'
-    })
-  }
-}
-
-// 导航到装箱站页面
-const navigateToPackingStation = () => {
-  try {
-    // 保存订单信息到全局状态
-    const app = getApp()
-    if (app && app.globalData) {
-      app.globalData.currentOrder = { ...orderInfo }
-    }
-    // 跳转到装箱站页面
-    uni.navigateTo({
-      url: '/pages/position/packing-station'
-    })
-    console.log('导航到装箱站页面')
-  } catch (error) {
-    console.error('导航失败:', error)
-    uni.showToast({
-      title: '导航失败',
-      icon: 'error'
-    })
-  }
-}
-
-// 导航到丝库页面
-const navigateToSilkStorage = () => {
-  try {
-    // 保存订单信息到全局状态
-    const app = getApp()
-    if (app && app.globalData) {
-      app.globalData.currentOrder = { ...orderInfo }
-    }
-    // 跳转到丝库页面
-    uni.navigateTo({
-      url: '/pages/position/silk-storage'
-    })
-    console.log('导航到丝库页面')
-  } catch (error) {
-    console.error('导航失败:', error)
-    uni.showToast({
-      title: '导航失败',
-      icon: 'error'
-    })
-  }
-}
-
-// 从全局状态获取数据的函数
+// 从全局获取当前批次信息
 const getDataFromGlobal = () => {
   try {
-    // 尝试获取全局数据
     const app = getApp()
-    console.log('获取app实例:', app)
-    
-    if (app && app.globalData) {
-      console.log('全局数据存在:', app.globalData)
-      if (app.globalData.currentOrder) {
-        console.log('找到currentOrder:', app.globalData.currentOrder)
-        // 逐个属性赋值，确保响应式更新
-        Object.keys(app.globalData.currentOrder).forEach(key => {
-          if (orderInfo.hasOwnProperty(key)) {
-            orderInfo[key] = app.globalData.currentOrder[key]
-          }
-        })
-        showToast('工单信息已加载')
-        return true
-      }
+    if (app && app.globalData && app.globalData.currentOrder) {
+      Object.keys(app.globalData.currentOrder).forEach(key => {
+        if (orderInfo.hasOwnProperty(key)) orderInfo[key] = app.globalData.currentOrder[key]
+      })
+      return true
     }
     return false
   } catch (e) {
@@ -783,59 +412,39 @@ const getDataFromGlobal = () => {
   }
 }
 
-onMounted(() => {
+// 组件挂载时：查询当前批次下对应segment岗位的状态
+onMounted(async () => {
   console.log('position-verification页面加载')
+  let success = getDataFromGlobal()
+  if (!success) setTimeout(getDataFromGlobal, 300)
   
-  // 获取并打印用户的role和position信息
-  try {
-    const app = getApp()
-    if (app && app.globalData) {
-      console.log('用户role信息:', app.globalData.role || '未获取到role信息')
-      console.log('用户position信息:', app.globalData.position || '未获取到position信息')
-    }
-  } catch (e) {
-    console.error('获取用户信息失败:', e)
-  }
-  
-  // 立即尝试从全局状态获取数据
-  const success = getDataFromGlobal()
-  
-  if (!success) {
-    console.log('未找到全局数据，等待300ms后重试...')
-    // 延迟重试，确保全局数据已设置完成
-    setTimeout(() => {
-      getDataFromGlobal()
-      console.log('重试后订单信息:', JSON.stringify(orderInfo))
-    }, 300)
-  }
-  
-  // 作为最后的备选方案，检查URL参数
-  setTimeout(() => {
+  setTimeout(async () => {
+    if (!orderInfo.batchNo) return
+
     try {
-      const pages = getCurrentPages()
-      const currentPage = pages[pages.length - 1]
-      const options = currentPage.options
-      console.log('检查URL参数:', options)
-      
-      if (options && options.data) {
+      for (const position of positions) {
         try {
-          const parsedData = JSON.parse(decodeURIComponent(options.data))
-          console.log('通过URL参数接收到数据:', parsedData)
-          // 只有在全局数据未获取成功时使用URL参数
-          if (!orderInfo.batchNo) {
-            Object.keys(parsedData).forEach(key => {
-              if (orderInfo.hasOwnProperty(key)) {
-                orderInfo[key] = parsedData[key]
-              }
-            })
-            showToast('通过URL参数加载数据')
+          const result = await byBatchIdAndSegment(orderInfo.batchNo, position.segment)
+          if (result) {
+            position.hasCurrentBatchStatus = true
+            position.verificationStatus = result.verificationResult?.status || ''
+            position.currentStep = result.verificationResult?.current_step || 0
+            position.dataCount = result.dataCount || 0 // 注意接口字段（是dataCount还是data_count）
+            
+            // 调试日志
+            console.log(`岗位：${position.name}`)
+            console.log(`  - 进度：${position.dataCount}/${position.totalCount}`)
+            console.log(`  - currentStep：${position.currentStep}`)
           }
-        } catch (e) {
-          console.error('解析URL参数失败:', e)
+        } catch (error) {
+          console.error(`查询${position.name}验证状态失败:`, error)
+          position.hasCurrentBatchStatus = false
+          position.dataCount = 0
+          position.currentStep = 0
         }
       }
     } catch (e) {
-      console.error('检查URL参数失败:', e)
+      console.error('查询验证状态失败:', e)
     }
   }, 500)
 })
@@ -848,39 +457,18 @@ onMounted(() => {
   min-height: 100vh;
 }
 
-/* 工单信息卡片样式 */
 .work-order-info-card {
   margin-bottom: 30rpx;
   border-radius: 12rpx;
   border: 1px solid #e0e0e0;
   padding: 20rpx;
   background-color: #ffffff;
-  position: relative;
-  display: flex;
-  align-items: flex-start;
 }
 
-/* 预混柜圆圈样式 */
-.pre-mix-circle {
-  width: 100rpx;
-  height: 100rpx;
-  border-radius: 50%;
-  background-color: #409EFF;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28rpx;
-  font-weight: bold;
-  margin-right: 20rpx;
-}
-
-/* 工单信息内容区域 */
 .order-info-content {
   flex: 1;
 }
 
-/* 信息行样式 */
 .info-row {
   display: flex;
   justify-content: space-between;
@@ -888,43 +476,21 @@ onMounted(() => {
   font-size: 28rpx;
 }
 
-/* 信息标签样式 */
 .info-label {
   color: #606266;
 }
 
-/* 信息值样式 */
 .info-value {
   color: #303133;
   font-weight: 500;
 }
 
-/* 警告圆圈样式 */
-.warning-circle {
-  width: 60rpx;
-  height: 60rpx;
-  border-radius: 50%;
-  background-color: #F56C6C;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 36rpx;
-  font-weight: bold;
-  position: absolute;
-  right: 20rpx;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-/* 页面主体内容卡片样式 */
 .main-content-card {
   border-radius: 12rpx;
   overflow: hidden;
   margin-bottom: 30rpx;
 }
 
-/* 标题样式 */
 .section-title {
   font-size: 32rpx;
   font-weight: bold;
@@ -933,7 +499,6 @@ onMounted(() => {
   border-bottom: 2rpx solid #ebeef5;
 }
 
-/* 岗位列表样式 */
 .position-list {
   display: flex;
   flex-direction: column;
@@ -942,16 +507,14 @@ onMounted(() => {
   padding: 20rpx 0;
 }
 
-/* 岗位项样式 */
 .position-item {
   background-color: #ffffff;
   border-radius: 12rpx;
-  padding: 30rpx;
+  padding: 20rpx 30rpx;
   box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
   border: 1px solid #e0e0e0;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
@@ -961,6 +524,7 @@ onMounted(() => {
   content: '>';
   position: absolute;
   right: 30rpx;
+  top: 25rpx;
   color: #c0c4cc;
   font-size: 32rpx;
 }
@@ -970,25 +534,24 @@ onMounted(() => {
   transform: scale(0.98);
 }
 
-/* 岗位头部信息 */
-.position-header {
-  flex: 1;
+.item-row {
   display: flex;
-  flex-direction: column;
-  gap: 10rpx;
+  align-items: center;
 }
 
-/* 岗位名称 */
-.position-name {
+.first-row {
+  justify-content: space-between;
+  margin-bottom: 15rpx;
+}
+
+.second-row {
+  justify-content: flex-start;
+}
+
+.item-name {
   font-size: 32rpx;
   font-weight: 500;
   color: #303133;
-}
-
-/* 岗位编码 */
-.position-code {
-  font-size: 26rpx;
-  color: #909399;
 }
 
 /* 岗位状态样式 */
@@ -996,30 +559,52 @@ onMounted(() => {
   padding: 6rpx 20rpx;
   border-radius: 20rpx;
   font-size: 24rpx;
-  margin-right: 40rpx;
+  font-weight: bold;
+  transition: all 0.3s ease;
 }
-
-/* 已验证状态 - 绿色 */
-.position-status.verified {
+.unverified {
+  background-color: #fef0f0;
+  color: #f56c6c;
+}
+.verified {
+  background-color: #e8f4f8;
+  color: #4299e1;
+}
+.completed-green {
   background-color: #f0f9eb;
   color: #67c23a;
 }
 
-/* 未验证状态 - 红色 */
-.position-status.unverified {
-  background-color: #fef0f0;
-  color: #f56c6c;
+/* 4级验证样式 */
+.verification-levels {
+  display: flex;
+  gap: 15rpx;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
-/* 异常状态 */
-.position-status.abnormal {
-  background-color: #fef0f0;
-  color: #f56c6c;
+.verification-level {
+  flex: 1;
+  min-width: 80rpx;
+  text-align: center;
 }
 
-/* 维护状态 */
-.position-status.maintenance {
-  background-color: #fdf6ec;
-  color: #e6a23c;
+.level-number {
+  font-size: 22rpx;
+  padding: 4rpx 8rpx;
+  border-radius: 15rpx;
+  background-color: rgba(204, 204, 204, 0.1);
+  color: #666;
+  border: 1px solid rgba(204, 204, 204, 0.3);
+  display: inline-block;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+}
+
+.level-number.completed {
+  background-color: rgba(82, 196, 26, 0.1);
+  color: #52c41a;
+  border: 1px solid rgba(82, 196, 26, 0.3);
 }
 </style>

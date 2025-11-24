@@ -12,10 +12,12 @@
         :src="item.localPreviewUrl || item.previewUrl || item.url"
         mode="aspectFill"
         class="preview"
+        :class="{ 'image-error': item.loadError }"
+        @error="handleImageError(index, $event)"
       />
-      <!-- 只有非外部设置的图片才显示删除按钮 -->
+      <!-- 删除按钮：非外部图片或外部图片加载失败时显示 -->
       <button 
-        v-if="!item.isExternal" 
+        v-if="!item.isExternal || item.loadError" 
         class="delete-btn" 
         @click.stop="removeFile(index)"
       >
@@ -31,7 +33,10 @@
       </view>
       
       <!-- 外部图片标识 -->
-      <view v-if="item.isExternal" class="external-badge">已上传</view>
+      <view v-if="item.isExternal && !item.loadError" class="external-badge">已上传</view>
+      
+      <!-- 图片加载错误提示 -->
+      <view v-if="item.loadError" class="error-badge">图片加载失败</view>
     </view>
 
     <!-- 添加按钮 -->
@@ -70,14 +75,14 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['select', 'success', 'fail', 'upload-complete']);
+const emit = defineEmits(['select', 'success', 'fail', 'upload-complete', 'image-error', 'remove']);
 
 // 本地文件列表
 const localFiles = ref([]);
 // 外部设置的图片列表
 const externalFiles = ref([]);
 
-const BASE_URL = 'http://192.168.215.185:8081/api';
+const BASE_URL = 'http://192.168.47.1:8081/api';
 const fullUploadUrl = computed(() => props.uploadUrl || `${BASE_URL}/upload`);
 
 // 计算属性：合并显示的文件列表
@@ -96,8 +101,10 @@ const setPreviewImages = (imageUrls) => {
   
   externalFiles.value = imageUrls.map(url => ({
     url: url,
+    localPreviewUrl: url, // 添加本地预览URL以支持预览
     isExternal: true, // 标记为外部图片
-    fileName: getFileName(url)
+    fileName: getFileName(url),
+    loadError: false // 初始状态为未加载错误
   }));
   
   console.log('设置外部预览图片:', externalFiles.value);
@@ -201,6 +208,28 @@ const previewImage = (item) => {
   }
 };
 
+// ================================
+// ✅ 新增：处理图片加载错误
+// ================================
+const handleImageError = (index, event) => {
+  console.warn('图片加载失败:', index, event);
+  
+  // 计算在外部文件中的索引
+  const externalCount = externalFiles.value.length;
+  
+  if (index < externalCount) {
+    // 外部图片加载失败
+    externalFiles.value[index].loadError = true;
+    // 通知父组件图片加载失败
+    emit('image-error', { index: index, url: externalFiles.value[index].url });
+  } else {
+    // 本地图片加载失败
+    const localIndex = index - externalCount;
+    localFiles.value[localIndex].loadError = true;
+    emit('image-error', { index: localIndex, url: localFiles.value[localIndex].localFilePath });
+  }
+};
+
 // 删除图片
 const removeFile = (index) => {
   // 计算在localFiles中的实际索引
@@ -210,12 +239,20 @@ const removeFile = (index) => {
     const localIndex = index - externalCount;
     localFiles.value.splice(localIndex, 1);
     emit('select', [...localFiles.value]);
+    emit('remove', { type: 'local', index: localIndex });
   } else {
-    // 外部图片不允许删除
-    uni.showToast({
-      title: '外部图片不可删除',
-      icon: 'none'
-    });
+    // 检查是否是加载失败的外部图片
+    if (externalFiles.value[index]?.loadError) {
+      // 允许删除加载失败的外部图片
+      externalFiles.value.splice(index, 1);
+      emit('remove', { type: 'external', index: index });
+    } else {
+      // 正常的外部图片不允许删除
+      uni.showToast({
+        title: '正常的外部图片不可删除',
+        icon: 'none'
+      });
+    }
   }
 };
 
@@ -315,11 +352,20 @@ const getAllFiles = () => {
 
 // ================================
 // ✅ 新增：获取所有图片URL（包括外部和已上传的本地图片）
+// 返回已上传成功的服务器URL、外部图片URL或本地blob URL
 // ================================
 const getAllImageUrls = () => {
   return displayFiles.value
-    .map(file => file.previewUrl || file.url)
-    .filter(url => url);
+    .map(file => {
+      // 如果是外部图片，使用url
+      if (file.isExternal) {
+        return file.url;
+      } else {
+        // 如果是本地图片，优先使用已上传成功的previewUrl，否则使用本地blob URL
+        return file.previewUrl || file.localPreviewUrl;
+      }
+    })
+    .filter(url => url); // 过滤掉无效的图片URL
 };
 
 // 暴露方法
@@ -453,6 +499,26 @@ defineExpose({
   top: 8rpx;
   left: 8rpx;
   background: rgba(0, 122, 255, 0.8);
+  color: white;
+  font-size: 18rpx;
+  padding: 4rpx 8rpx;
+  border-radius: 12rpx;
+  z-index: 5;
+}
+
+/* ================================ */
+/* ✅ 新增：图片错误样式 */
+/* ================================ */
+.image-error {
+  filter: grayscale(80%);
+  opacity: 0.7;
+}
+
+.error-badge {
+  position: absolute;
+  top: 8rpx;
+  left: 8rpx;
+  background: rgba(255, 69, 69, 0.8);
   color: white;
   font-size: 18rpx;
   padding: 4rpx 8rpx;

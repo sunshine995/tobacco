@@ -31,3 +31,9 @@ export const selectdottle = (brandId) => {
 export const queryDayDottle = () => {
     return get('/api/dottle/queryDayDottle')
 }
+
+// 更新残烟丝库存
+export const updateDottleInventory = (data) => {
+    return post('/api/dottle/update-inventory', data)
+}
+
