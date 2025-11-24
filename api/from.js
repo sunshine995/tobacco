@@ -18,3 +18,16 @@ export const selectByInventory = () => {
 export const saveRecordInventory = (data) => {
     return post('/api/tobacco-inventory/save', data)
 }
+
+// 残烟丝管理
+export const saveDottleInventory = (data) => {
+    return post('/api/dottle/save', data)
+}
+
+export const selectdottle = (brandId) => {
+    return get(`/api/dottle/query`, {brandId: brandId})
+}
+
+export const queryDayDottle = () => {
+    return get('/api/dottle/queryDayDottle')
+}

@@ -34,7 +34,8 @@ const toolList = computed(() => {
 	{name: 'grid', title: '我的工单' },
 	{name: 'level', title: '动态组' },
 	{name: 'level', title: '箱皮管理' },
-	{name: 'level', title: '膨化烟丝管理' }
+	{name: 'level', title: '膨化烟丝管理' },
+	{name: 'level', title: '残烟丝管理' }
 		
   ]
 
@@ -84,6 +85,9 @@ const handleGridClick = (index) => {
 	  break
 	case '膨化烟丝管理':
 	  url = '/pages/produce/tobaccoInventory'
+	  break
+	case '残烟丝管理':
+	  url = '/pages/produce/dottle'
 	  break
     default:
       toastRef.value?.show({

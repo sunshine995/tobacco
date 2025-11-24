@@ -286,6 +286,13 @@
 			{
 				"navigationBarTitleText" : "箱皮管理"
 			}
+		},
+		{
+			"path" : "pages/produce/dottle",
+			"style" : 
+			{
+				"navigationBarTitleText" : "残烟丝管理"
+			}
 		}
   ],
   "globalStyle": {
