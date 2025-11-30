@@ -36,7 +36,7 @@
 <script setup>
 import { ref } from 'vue';
 
-const UPLOAD_URL = 'http://192.168.215.185:8081/api/upload';
+const UPLOAD_URL = 'http://192.168.179.185:8081/api/upload';
 
 const props = defineProps({
   formData: { type: Object, default: () => ({}) },

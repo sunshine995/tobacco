@@ -28,8 +28,13 @@ export const selectdottle = (brandId) => {
     return get(`/api/dottle/query`, {brandId: brandId})
 }
 
+// 查询每日残烟次掺兑记录
 export const queryDayDottle = () => {
     return get('/api/dottle/queryDayDottle')
+}
+// 查询过期记录
+export const queryExpireDottle = () => {
+    return get('/api/dottle/queryExpire')
 }
 
 // 更新残烟丝库存

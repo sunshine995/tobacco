@@ -21,9 +21,9 @@
           <text class="action-icon">⚖️</text>
           <text class="action-label">掺兑</text>
         </view>
-        <view class="action-btn" @click="showReturnForm = true">
+        <view class="action-btn" @click="openReturnForm">
           <text class="action-icon">🚚</text>
-          <text class="action-label">超时</text>
+          <text class="action-label">退走</text>
         </view>
       </view>
     </view>
@@ -162,10 +162,10 @@
         <view class="blend-records">
           <view class="records-header">
             <text class="header-text">今日掺兑批次</text>
-            <view class="add-button" @click="openAddBlendForm">
+            <!-- <view class="add-button" @click="openAddBlendForm">
               <text class="add-icon">+</text>
               <text>新增掺兑</text>
-            </view>
+            </view> -->
           </view>
           
           <view class="records-list">
@@ -196,113 +196,66 @@
         </view>
       </view>
     </view>
+    
 
-    <!-- 新增掺兑表单 -->
-    <view v-if="showAddBlendForm" class="modal-overlay">
+    <!-- 退走装箱表单 -->
+    <view v-if="showReturnForm" class="modal-overlay">
       <view class="modal-content">
         <view class="modal-header">
-          <text class="modal-title">新增掺兑记录</text>
-          <text class="modal-close" @click="closeAddBlendForm">×</text>
+          <text class="modal-title">退走装箱</text>
+          <text class="modal-close" @click="showReturnForm = false">×</text>
         </view>
         
-        <view class="form-group">
-          <text class="form-label">牌号：</text>
-          <view class="brand-selector">
-            <view class="picker" @click="showBlendBrandPicker = true">
-              {{ blendForm.brandName || '请选择牌号' }}
-            </view>
-          </view>
-        </view>
-        
-        <view class="form-group">
-          <text class="form-label">批次：</text>
-          <view class="batch-selector">
-            <view class="picker" @click="showBlendBatchPicker = true">
-              {{ blendForm.batchId || '请选择批次' }}
-            </view>
-          </view>
-        </view>
-        
-        <view class="form-group">
-          <text class="form-label">掺兑数量：</text>
-          <view class="input-group">
-            <input v-model="blendForm.bags" type="number" class="form-input" placeholder="袋" />
-            <text class="input-unit">袋</text>
-            <input v-model="blendForm.weight" type="number" class="form-input" placeholder="公斤" />
-            <text class="input-unit">公斤</text>
-          </view>
-        </view>
-        
-        <view class="form-group">
-          <text class="form-label">班次：</text>
-          <view class="radio-group">
+        <!-- 过期批次列表 -->
+        <view class="expired-batches">
+          <view class="section-title">📦 过期批次列表（可多选）</view>
+          <view class="batch-picker-list">
             <view 
-              :class="['radio-option', blendForm.shift === '白班' ? 'selected' : '']"
-              @click="blendForm.shift = '白班'"
+              v-for="batch in expiredBatches" 
+              :key="batch.id"
+              :class="['batch-picker-item', isBatchSelected(batch.id) ? 'selected' : '']"
+              @click="toggleBatchSelection(batch)"
             >
-              <text>白班</text>
-            </view>
-            <view 
-              :class="['radio-option', blendForm.shift === '中班' ? 'selected' : '']"
-              @click="blendForm.shift = '中班'"
-            >
-              <text>中班</text>
-            </view>
-          </view>
-        </view>
-        
-        <view class="form-actions">
-          <view class="btn btn-cancel" @click="closeAddBlendForm">取消</view>
-          <view class="btn btn-confirm" @click="saveBlendRecord">确认保存</view>
-        </view>
-      </view>
-    </view>
-
-    <!-- 掺兑牌号选择器 -->
-    <view v-if="showBlendBrandPicker" class="modal-overlay">
-      <view class="modal-content brand-picker-modal">
-        <view class="modal-header">
-          <text class="modal-title">选择掺兑牌号</text>
-          <text class="modal-close" @click="showBlendBrandPicker = false">×</text>
-        </view>
-        <view class="brand-picker-list">
-          <view 
-            v-for="brand in availableBrands" 
-            :key="brand.batchNumber"
-            :class="['brand-picker-item', blendForm.brandId === brand.batchNumber ? 'selected' : '']"
-            @click="selectBlendBrand(brand)"
-          >
-            <text>{{ brand.gradeName }}</text>
-            <text class="brand-stock">库存: {{ getBrandStock(brand.batchNumber) }}袋</text>
-          </view>
-        </view>
-      </view>
-    </view>
-
-    <!-- 掺兑批次选择器 -->
-    <view v-if="showBlendBatchPicker" class="modal-overlay">
-      <view class="modal-content">
-        <view class="modal-header">
-          <text class="modal-title">选择批次 - {{ getBrandName(blendForm.brandId) }}</text>
-          <text class="modal-close" @click="showBlendBatchPicker = false">×</text>
-        </view>
-        <view class="batch-picker-list">
-          <view 
-            v-for="batch in getBatchesByBrand(blendForm.brandId)" 
-            :key="batch.id"
-            :class="['batch-picker-item', getStatusClass(batch.status)]"
-            @click="selectBlendBatch(batch)"
-          >
-            <view class="batch-picker-info">
-              <text class="batch-picker-id">{{ batch.batchId }}</text>
-              <text class="batch-picker-date">{{ batch.receiveDate }}</text>
-            </view>
-            <view class="batch-picker-details">
-              <text class="batch-picker-remaining">{{ batch.remainingBags }}袋 {{ batch.remainingWeight }}kg</text>
-              <view :class="['batch-picker-status', getStatusClass(batch.status)]">
-                <text>{{ getStatusText(batch.status, batch.daysRemaining) }}</text>
+              <view class="batch-checkbox">
+                <text v-if="isBatchSelected(batch.id)" class="checkbox-checked">✓</text>
+                <text v-else class="checkbox-unchecked"></text>
+              </view>
+              <view class="batch-picker-info">
+                <text class="batch-picker-id">{{ batch.batchId }}</text>
+                <text class="batch-picker-date">{{ batch.receiveDate }}</text>
+                <text class="batch-picker-brand">{{ batch.brandName }}</text>
+              </view>
+              <view class="batch-picker-details">
+                <text class="batch-picker-remaining">{{ batch.remainingBags }}袋 {{ batch.remainingWeight }}kg</text>
+                <view class="batch-picker-status status-expired">
+                  <text>⚠️已过期</text>
+                </view>
               </view>
             </view>
+            
+            <view v-if="expiredBatches.length === 0" class="empty-batches">
+              <text class="empty-text">暂无过期批次</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 退走统计信息 -->
+        <view class="return-summary" v-if="selectedBatches.length > 0">
+          <view class="section-title">📋 退走统计</view>
+          <view class="summary-info">
+            <text class="summary-text">已选择 {{ selectedBatches.length }} 个批次</text>
+            <text class="summary-text">总计: {{ totalSelectedBags }} 袋 {{ totalSelectedWeight }} kg</text>
+          </view>
+        </view>
+
+        <view class="form-actions">
+          <view class="btn btn-cancel" @click="showReturnForm = false">取消</view>
+          <view 
+            class="btn btn-confirm" 
+            :class="{ 'btn-disabled': selectedBatches.length === 0 }"
+            @click="saveReturnForm"
+          >
+            确认退走 ({{ selectedBatches.length }})
           </view>
         </view>
       </view>
@@ -313,7 +266,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { getTobaccoAll } from '@/api/production'
-import { saveDottleInventory, selectdottle, queryDayDottle } from '@/api/from'
+import { saveDottleInventory, selectdottle, queryDayDottle, queryExpireDottle} from '@/api/from'
 
 // 牌号数据
 const brands = ref([])
@@ -327,6 +280,12 @@ const batches = ref([])
 // 今日掺兑记录
 const todayBlendRecords = ref([])
 
+// 过期记录
+const expiredBatches = ref([])
+
+// 选中的批次ID数组（多选）
+const selectedBatchIds = ref([])
+
 // 根据选中的牌号筛选批次
 const filteredBatches = computed(() => {
   if (selectedBrandId.value === 0) {
@@ -335,36 +294,31 @@ const filteredBatches = computed(() => {
   return batches.value.filter(batch => batch.brandId === selectedBrandId.value)
 })
 
-// 有库存的牌号
-const availableBrands = computed(() => {
-  const brandIdsWithStock = [...new Set(batches.value.map(batch => batch.brandId))]
-  return brands.value.filter(brand => brandIdsWithStock.includes(brand.batchNumber))
+// 选中的批次列表
+const selectedBatches = computed(() => {
+  return expiredBatches.value.filter(batch => selectedBatchIds.value.includes(batch.id))
+})
+
+// 总袋数统计
+const totalSelectedBags = computed(() => {
+  return selectedBatches.value.reduce((total, batch) => total + batch.remainingBags, 0)
+})
+
+// 总重量统计
+const totalSelectedWeight = computed(() => {
+  return selectedBatches.value.reduce((total, batch) => total + batch.remainingWeight, 0)
 })
 
 // 模态框显示状态
 const showReceiveForm = ref(false)
 const showBlendForm = ref(false)
-const showAddBlendForm = ref(false)
 const showReturnForm = ref(false)
 const showBrandPicker = ref(false)
-const showBlendBrandPicker = ref(false)
-const showBlendBatchPicker = ref(false)
 
 // 接收表单数据
 const receiveForm = reactive({
   brandId: null,
   brandName: '',
-  bags: '',
-  weight: '',
-  shift: '白班'
-})
-
-// 掺兑表单数据
-const blendForm = reactive({
-  brandId: null,
-  brandName: '',
-  batchId: null,
-  batchInfo: null,
   bags: '',
   weight: '',
   shift: '白班'
@@ -392,28 +346,17 @@ const openReceiveForm = () => {
 // 打开掺兑表单 - 显示今日掺兑记录
 const openBlendForm = () => {
   showBlendForm.value = true
-  // 这里可以调用API获取今日掺兑记录
+  // 加载今日掺兑记录
   loadTodayBlendRecords()
 }
 
-// 打开新增掺兑表单
-const openAddBlendForm = () => {
-  showBlendForm.value = false
-  showAddBlendForm.value = true
-  // 重置掺兑表单
-  blendForm.brandId = null
-  blendForm.brandName = ''
-  blendForm.batchId = null
-  blendForm.batchInfo = null
-  blendForm.bags = ''
-  blendForm.weight = ''
-  blendForm.shift = '白班'
-}
-
-// 关闭新增掺兑表单
-const closeAddBlendForm = () => {
-  showAddBlendForm.value = false
-  showBlendForm.value = true
+// 打开退走表单
+const openReturnForm = async () => {
+  const res = await queryExpireDottle()
+  expiredBatches.value = res
+  selectedBatchIds.value = [] // 重置选择
+  console.log(res)
+  showReturnForm.value = true
 }
 
 // 选择接收牌号
@@ -423,39 +366,27 @@ const selectBrandForReceive = (brand) => {
   showBrandPicker.value = false
 }
 
-// 选择掺兑牌号
-const selectBlendBrand = (brand) => {
-  blendForm.brandId = brand.batchNumber
-  blendForm.brandName = brand.gradeName
-  blendForm.batchId = null
-  blendForm.batchInfo = null
-  showBlendBrandPicker.value = false
+// 切换批次选择状态
+const toggleBatchSelection = (batch) => {
+  const index = selectedBatchIds.value.indexOf(batch.id)
+  if (index > -1) {
+    // 如果已经选中，则移除
+    selectedBatchIds.value.splice(index, 1)
+  } else {
+    // 如果未选中，则添加
+    selectedBatchIds.value.push(batch.id)
+  }
 }
 
-// 选择掺兑批次
-const selectBlendBatch = (batch) => {
-  blendForm.batchId = batch.batchId
-  blendForm.batchInfo = batch
-  showBlendBatchPicker.value = false
+// 检查批次是否被选中
+const isBatchSelected = (batchId) => {
+  return selectedBatchIds.value.includes(batchId)
 }
 
 // 获取牌号名称
 const getBrandName = (brandId) => {
   const brand = brands.value.find(b => b.batchNumber === brandId)
   return brand ? brand.gradeName : ''
-}
-
-// 获取牌号库存
-const getBrandStock = (brandId) => {
-  const brandBatches = batches.value.filter(batch => batch.brandId === brandId)
-  return brandBatches.reduce((total, batch) => total + batch.remainingBags, 0)
-}
-
-// 根据牌号获取批次
-const getBatchesByBrand = (brandId) => {
-  return batches.value
-    .filter(batch => batch.brandId === brandId && batch.remainingBags > 0)
-    .sort((a, b) => new Date(a.receiveDate) - new Date(b.receiveDate)) // 按日期排序，最早的在前
 }
 
 // 生成批次ID
@@ -549,86 +480,52 @@ const saveReceiveForm = async () => {
   batches.value = dottleList
 }
 
-// 保存掺兑记录
-const saveBlendRecord = async () => {
-  if (!blendForm.brandId) {
+// 保存退走表单
+const saveReturnForm = async () => {
+  if (selectedBatchIds.value.length === 0) {
     uni.showToast({
-      title: '请选择牌号',
+      title: '请选择要退走的批次',
       icon: 'none'
     })
     return
   }
   
-  if (!blendForm.batchId) {
-    uni.showToast({
-      title: '请选择批次',
-      icon: 'none'
-    })
-    return
-  }
+  // 创建退走记录
+  const returnRecords = selectedBatches.value.map(batch => ({
+    batchId: batch.batchId,
+    brandName: batch.brandName,
+    bagsReturned: batch.remainingBags,
+    weightReturned: batch.remainingWeight,
+    returnDate: new Date().toLocaleDateString(),
+    operator: uni.getStorageSync('userInfo').name
+  }))
   
-  if (!blendForm.bags || !blendForm.weight) {
-    uni.showToast({
-      title: '请填写掺兑数量',
-      icon: 'none'
-    })
-    return
-  }
+  // 这里应该调用API保存退走记录
+  // await saveReturnRecordsAPI(returnRecords)
   
-  // 验证数量不超过剩余量
-  if (parseInt(blendForm.bags) > blendForm.batchInfo.remainingBags) {
-    uni.showToast({
-      title: '掺兑袋数不能超过剩余袋数',
-      icon: 'none'
-    })
-    return
-  }
-  
-  if (parseFloat(blendForm.weight) > blendForm.batchInfo.remainingWeight) {
-    uni.showToast({
-      title: '掺兑重量不能超过剩余重量',
-      icon: 'none'
-    })
-    return
-  }
-  
-  // 创建掺兑记录
-  const blendRecord = {
-    batchId: blendForm.batchId,
-    brandName: blendForm.brandName,
-    bagsUsed: parseInt(blendForm.bags),
-    weightUsed: parseFloat(blendForm.weight),
-    shiftType: blendForm.shift,
-    operationTime: new Date().toLocaleTimeString()
-  }
-  
-  // 这里应该调用API保存掺兑记录
-  // await saveBlendRecordAPI(blendRecord)
-  
-  // 临时添加到今日掺兑记录
-  todayBlendRecords.value.push({
-    id: Date.now(),
-    ...blendRecord
+  // 更新批次剩余量（这里假设退走是整个批次退走）
+  selectedBatches.value.forEach(batch => {
+    const batchIndex = batches.value.findIndex(b => b.id === batch.id)
+    if (batchIndex !== -1) {
+      batches.value[batchIndex].remainingBags = 0
+      batches.value[batchIndex].remainingWeight = 0
+    }
   })
   
-  // 更新批次剩余量
-  const batchIndex = batches.value.findIndex(b => b.batchId === blendForm.batchId)
-  if (batchIndex !== -1) {
-    batches.value[batchIndex].remainingBags -= blendRecord.bagsUsed
-    batches.value[batchIndex].remainingWeight -= blendRecord.weightUsed
-  }
-  
   uni.showToast({
-    title: '掺兑记录保存成功',
+    title: `成功退走 ${selectedBatchIds.value.length} 个批次`,
     icon: 'success'
   })
   
-  closeAddBlendForm()
+  showReturnForm.value = false
+  
+  // 刷新过期批次列表
+  const res = await queryExpireDottle()
+  expiredBatches.value = res
 }
 
 // 加载今日掺兑记录
 const loadTodayBlendRecords = async () => {
-  
   todayBlendRecords.value = await queryDayDottle()
 }
 
@@ -867,7 +764,7 @@ onMounted(async () => {
 .modal-content {
   background: white;
   width: 90%;
-  max-width: 600rpx;
+  max-width: 700rpx;
   border-radius: 16rpx;
   padding: 30rpx;
   box-shadow: 0 10rpx 30rpx rgba(0,0,0,0.2);
@@ -906,6 +803,7 @@ onMounted(async () => {
   font-size: 28rpx;
   margin-bottom: 10rpx;
   display: block;
+  font-weight: bold;
 }
 
 .form-value {
@@ -939,15 +837,15 @@ onMounted(async () => {
   margin-right: 10rpx;
 }
 
-.form-input.inline {
-  width: 120rpx;
-  margin-left: 20rpx;
-  margin-right: 10rpx;
-}
-
 .input-unit {
   font-size: 28rpx;
   margin-right: 20rpx;
+}
+
+.form-hint {
+  font-size: 24rpx;
+  color: #666;
+  margin-top: 8rpx;
 }
 
 .radio-group {
@@ -1003,6 +901,12 @@ onMounted(async () => {
   color: white;
 }
 
+.btn-disabled {
+  background-color: #ccc;
+  color: #666;
+  pointer-events: none;
+}
+
 /* 掺兑记录样式 */
 .blend-records {
   margin-bottom: 30rpx;
@@ -1017,20 +921,6 @@ onMounted(async () => {
 
 .header-text {
   font-size: 28rpx;
-  font-weight: bold;
-}
-
-.add-button {
-  display: flex;
-  align-items: center;
-  padding: 10rpx 20rpx;
-  background-color: #f0f7ff;
-  border-radius: 20rpx;
-  color: #1976d2;
-}
-
-.add-icon {
-  margin-right: 8rpx;
   font-weight: bold;
 }
 
@@ -1082,6 +972,139 @@ onMounted(async () => {
   color: #999;
 }
 
+/* 退走表单样式 */
+.section-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  margin: 30rpx 0 20rpx 0;
+  color: #333;
+}
+
+.expired-batches {
+  margin-bottom: 30rpx;
+}
+
+.batch-picker-list {
+  max-height: 400rpx;
+  overflow-y: auto;
+  border: 1rpx solid #eee;
+  border-radius: 8rpx;
+  padding: 0 20rpx;
+}
+
+.batch-picker-item {
+  display: flex;
+  align-items: center;
+  padding: 25rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+  cursor: pointer;
+}
+
+.batch-picker-item.selected {
+  background-color: #e3f2fd;
+  margin: 0 -20rpx;
+  padding-left: 20rpx;
+  padding-right: 20rpx;
+}
+
+.batch-picker-item:last-child {
+  border-bottom: none;
+}
+
+.batch-checkbox {
+  width: 40rpx;
+  height: 40rpx;
+  border: 2rpx solid #ddd;
+  border-radius: 6rpx;
+  margin-right: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkbox-checked {
+  color: #1976d2;
+  font-weight: bold;
+  font-size: 24rpx;
+}
+
+.checkbox-unchecked {
+  width: 100%;
+  height: 100%;
+}
+
+.batch-picker-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.batch-picker-id {
+  font-size: 28rpx;
+  font-weight: bold;
+  margin-bottom: 5rpx;
+}
+
+.batch-picker-date {
+  font-size: 22rpx;
+  color: #666;
+  margin-bottom: 5rpx;
+}
+
+.batch-picker-brand {
+  font-size: 22rpx;
+  color: #1976d2;
+  font-weight: bold;
+}
+
+.batch-picker-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex: 1;
+  margin: 0 20rpx;
+}
+
+.batch-picker-remaining {
+  font-size: 26rpx;
+  margin-bottom: 5rpx;
+  font-weight: bold;
+}
+
+.batch-picker-status {
+  font-size: 22rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 20rpx;
+}
+
+.empty-batches {
+  text-align: center;
+  padding: 40rpx 0;
+}
+
+.empty-text {
+  font-size: 26rpx;
+  color: #999;
+}
+
+.return-summary {
+  border-top: 1rpx solid #eee;
+  padding-top: 20rpx;
+  margin-bottom: 20rpx;
+}
+
+.summary-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.summary-text {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #1976d2;
+}
+
 /* 牌号选择器列表 */
 .brand-picker-list {
   display: flex;
@@ -1110,59 +1133,5 @@ onMounted(async () => {
 .brand-stock {
   font-size: 24rpx;
   color: #666;
-}
-
-/* 批次选择器列表 */
-.batch-picker-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.batch-picker-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 25rpx 0;
-  border-bottom: 1rpx solid #eee;
-}
-
-.batch-picker-item:last-child {
-  border-bottom: none;
-}
-
-.batch-picker-info {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
-.batch-picker-id {
-  font-size: 28rpx;
-  font-weight: bold;
-  margin-bottom: 5rpx;
-}
-
-.batch-picker-date {
-  font-size: 22rpx;
-  color: #666;
-}
-
-.batch-picker-details {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  flex: 1;
-  margin: 0 20rpx;
-}
-
-.batch-picker-remaining {
-  font-size: 26rpx;
-  margin-bottom: 5rpx;
-}
-
-.batch-picker-status {
-  font-size: 22rpx;
-  padding: 4rpx 12rpx;
-  border-radius: 20rpx;
 }
 </style>

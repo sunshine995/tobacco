@@ -111,3 +111,7 @@ export const getFaultListByTypeApi = (params = {}) => {
 export const updateFaultStatusApi = (data) => {
 	return post(API.REPAIR, data)
 };
+
+export const updateAdminStatusApi = (data) => {
+  return post('/api/fault/arrive', data);
+}

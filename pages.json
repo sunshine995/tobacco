@@ -296,6 +296,13 @@
 			{
 				"navigationBarTitleText" : "残烟丝管理"
 			}
+		},
+		{
+			"path" : "pages/fault/fault-produce",
+			"style" : 
+			{
+				"navigationBarTitleText" : "质量异常详情"
+			}
 		}
   ],
   "globalStyle": {

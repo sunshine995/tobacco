@@ -1,8 +1,33 @@
 <template>
   <view class="container">
 	  
-	  <!-- 分类选择 -->
-	<u-tabs :list="tabList" @click="handleTabClick"></u-tabs>
+	  <!-- 分类选择 - 优化版本 -->
+	<view class="tab-container">
+	  <scroll-view 
+		class="tab-scroll" 
+		scroll-x 
+		:show-scrollbar="false"
+		:scroll-left="scrollLeft"
+	  >
+		<view class="tab-content">
+		  <view 
+			v-for="(tab, index) in tabList" 
+			:key="tab.type"
+			class="tab-item"
+			:class="{ active: activeTab === tab.type }"
+			@click="handleTabClick(tab, index)"
+		  >
+			<text class="tab-text">{{ tab.name }}</text>
+			<view class="tab-indicator"></view>
+		  </view>
+		</view>
+	  </scroll-view>
+	  
+	  <!-- 统计信息 -->
+	  <view class="stats-info" v-if="showStats">
+		<text class="stats-text">共{{ totalCount }}条</text>
+	  </view>
+	</view>
 
 
     <!-- 下拉刷新 -->
@@ -20,7 +45,7 @@
         <u-empty
           v-if="faultList.length === 0 && !loading"
           mode="list"
-          text="暂无故障信息"
+          :text="emptyText"
           marginTop="100"
         />
 
@@ -29,18 +54,18 @@
 
         <!-- 故障列表项 -->
         <view
-          v-for="(item, index) in faultList"
-          :key="item.id"
-          class="fault-item"
-          @click="goToDetail(item)"
-        >
-          <u-cell-group>
-            <u-cell
-              :title="`${item.line} - ${item.section}`"
-              :label="item.description"
-              :isLink="true"
-            >
-			<template #value>
+		  v-for="(item, index) in faultList"
+		  :key="item.id"
+		  class="fault-item"
+		>
+		  <u-cell-group>
+			<u-cell
+			  :title="`${item.line} - ${item.section}`"
+			  :label="item.description"
+			  :isLink="true"
+			  @click="goToDetail(item)"  
+			>
+			  <template #value>
 				<u-tag
 				  :text="statusText(item.status)"
 				  :type="statusType(item.status)"
@@ -49,13 +74,12 @@
 				/>
 			  </template>
 			</u-cell>
-            <view class="item-footer">
-              <text class="report-time">上报时间: {{ formatTime(item.reportTime) }}</text>
-              <text class="reporter">上报人: {{ item.reporterName || '未知' }}</text>
-            </view>
-          </u-cell-group>
-        </view>
-
+			<view class="item-footer">
+			  <text class="report-time">上报时间: {{ formatTime(item.reportTime) }}</text>
+			  <text class="reporter">上报人: {{ item.reporterName || '未知' }}</text>
+			</view>
+		  </u-cell-group>
+		</view>
         <!-- 上拉加载更多指示器 -->
         <u-loadmore
           v-if="faultList.length > 0"
@@ -98,44 +122,63 @@ const loading = ref(false)
 const refreshing = ref(false) // 下拉刷新状态
 const loadStatus = ref('loadmore') // u-loadmore 组件状态: loadmore, loading, nomore
 
-// 分类列表
-const tabList = [
-  { name: '设备异常', type: 'device' },
-  { name: '质量异常', type: 'quality' },
-  { name: '生产异常', type: 'production' }
-]
+// 分类列表 - 优化版本
+const tabList = computed(() => {
+  const allTabs = [
+    { name: '全部', type: 'all', count: 0 },
+    { name: '设备异常', type: 'device', count: 0 },
+    { name: '质量异常', type: 'quality', count: 0 },
+    { name: '生产异常', type: 'produce', count: 0 }
+  ]
+  
+  // 如果是 electrical 或 mechanical 角色，过滤掉质量和生产异常
+  if (['electrical', 'mechanical'].includes(role)) {
+    return allTabs.filter(tab => 
+      tab.type === 'all' || tab.type === 'device'
+    )
+  }
+  
+  return allTabs
+})
+
+const activeTab = ref('all') // 当前激活的tab
+const scrollLeft = ref(0) // 横向滚动位置
+const showStats = ref(true) // 是否显示统计信息
+const totalCount = ref(0) // 总条数
+
+// 空状态文本
+const emptyText = computed(() => {
+  if (activeTab.value === 'all') {
+    return '暂无异常信息'
+  }
+  const currentTab = tabList.value.find(tab => tab.type === activeTab.value)
+  return `暂无${currentTab?.name}`
+})
 
 // 页面加载时获取参数和初始数据
 onLoad(() => {
-	
-	if (role === 'ADMIN') {
-	    // 管理员：查看所有，不传 type，也不限制班组
-	    repairType.value = 'admin' // 表示全部
-	    showMyOnly.value = false
-	  } else if (role === 'USER') {
-	    // 普通员工：只能看自己上报的
-	    repairType.value = 'user' // 不按班组查
-	    showMyOnly.value = true
-	  } else if (['electrical', 'mechanical'].includes(role)) {
-	    // 维修工：看自己班组的任务
-	    repairType.value = role
-	    showMyOnly.value = false
-	  } else {
-	    // 默认处理
-	    repairType.value = 'electrical'
-	    showMyOnly.value = false
-	  }
-	
-    //repairType.value = uni.getStorageSync('userInfo').class	
-    loadData(true) // 初始加载第一页
-
+  if (role === 'ADMIN') {
+    repairType.value = 'admin'
+    showMyOnly.value = false
+  } else if (role === 'USER') {
+    repairType.value = 'user'
+    showMyOnly.value = true
+  } else if (['electrical', 'mechanical'].includes(role)) {
+    repairType.value = role
+    showMyOnly.value = false
+  } else {
+    repairType.value = 'electrical'
+    showMyOnly.value = false
+  }
+  
+  loadData(true)
 })
 
 // 状态文本映射
 const statusText = (status) => {
   const map = {
     reported: '待维修',
-	acknowledged: '已确认',
+    acknowledged: '已确认',
     progress: '维修中',
     repaired: '已修复',
     cancelled: '已取消'
@@ -146,11 +189,11 @@ const statusText = (status) => {
 // 状态类型（用于 u-tag 颜色）
 const statusType = (status) => {
   const types = {
-    reported: 'error',     // 红色
-	acknowledged: 'warning',    // 黄色
-    progress: 'warning',    // 黄色
-    repaired: 'success',   // 绿色
-    cancelled: 'info'      // 灰色
+    reported: 'error',
+    acknowledged: 'warning',
+    progress: 'warning',
+    repaired: 'success',
+    cancelled: 'info'
   }
   return types[status] || 'info'
 }
@@ -167,6 +210,14 @@ function formatTime(isoString) {
   return `${year}-${month}-${day} ${hours}:${minutes}`
 }
 
+// 处理tab点击
+function handleTabClick(tab, index) {
+  activeTab.value = tab.type
+  // 计算滚动位置，让当前tab尽量居中
+  scrollLeft.value = Math.max(0, (index - 1) * 80)
+  loadData(true)
+}
+
 // 加载数据函数
 async function loadData(isRefresh = false) {
   if (loading.value || (!isRefresh && !hasMore.value)) return
@@ -180,22 +231,45 @@ async function loadData(isRefresh = false) {
   }
 
   try {
-	const params = {
-	    type: repairType.value,
-	    userId: uni.getStorageSync('userId')
-	}
-    // TODO: 调用实际API获取故障列表
+    const params = {
+      type: repairType.value,
+      faultType: activeTab.value === 'all' ? '' : activeTab.value, // 添加异常类型筛选
+      userId: uni.getStorageSync('userId')
+    }
+    console.log(params)
     const res = await getFaultListByTypeApi(params)
-    faultList.value = res
-
+    
+    if (isRefresh) {
+      faultList.value = res.data || res
+    } else {
+      faultList.value = [...faultList.value, ...(res.data || res)]
+    }
+    
+    // 更新统计信息
+    totalCount.value = faultList.value.length
+    updateTabStats()
+    
   } catch (err) {
     console.error('加载数据失败:', err)
     uni.$u.toast('加载失败')
-    loadStatus.value = 'loadmore' // 重置状态
+    loadStatus.value = 'loadmore'
   } finally {
     loading.value = false
     refreshing.value = false
   }
+}
+
+// 更新tab统计信息
+function updateTabStats() {
+  // 这里可以根据实际数据更新每个tab的数量
+  tabList.value.forEach(tab => {
+    if (tab.type === 'all') {
+      tab.count = totalCount.value
+    } else {
+      // 实际项目中应该从接口获取每个分类的数量
+      tab.count = Math.floor(Math.random() * 20) // 模拟数据
+    }
+  })
 }
 
 // 下拉刷新
@@ -213,9 +287,17 @@ function onScrollToLower() {
 
 // 跳转到详情页
 function goToDetail(item) {
-  uni.navigateTo({
-    url: `/pages/fault/fault-detail?id=${item.id}` // 假设详情页路径
-  })
+	//console.log(item.type)
+  if(item.type === 'produce' || item.type === 'quality'){
+	uni.navigateTo({
+	  url: `/pages/fault/fault-produce?id=${item.id}`
+	})  
+  }else{
+	  uni.navigateTo({
+		url: `/pages/fault/fault-detail?id=${item.id}`
+	  })
+  }
+
 }
 </script>
 
@@ -223,11 +305,89 @@ function goToDetail(item) {
 .container {
   min-height: 100vh;
   background-color: #f8f8f8;
-  //padding-top: calc(env(safe-area-inset-top) + 44px);
+}
+
+/* 分类选择器样式优化 */
+.tab-container {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  padding: 10px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.tab-scroll {
+  flex: 1;
+  white-space: nowrap;
+  height: 44px;
+}
+
+.tab-content {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+}
+
+.tab-item {
+  position: relative;
+  padding: 0 16px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+  
+  &.active {
+    .tab-text {
+      color: #2979ff;
+      font-weight: 600;
+    }
+    
+    .tab-indicator {
+      transform: scaleX(1);
+      opacity: 1;
+    }
+  }
+}
+
+.tab-text {
+  font-size: 15px;
+  color: #606266;
+  transition: color 0.3s ease;
+}
+
+.tab-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 16px;
+  right: 16px;
+  height: 3px;
+  background: #2979ff;
+  border-radius: 2px;
+  transform: scaleX(0.8);
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.stats-info {
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 1px solid #e8e8e8;
+  flex-shrink: 0;
+}
+
+.stats-text {
+  font-size: 12px;
+  color: #909399;
+  white-space: nowrap;
 }
 
 .scroll-view {
-  height: calc(100vh - 44px); // 减去 navbar 高度
+  height: calc(100vh - 64px); // 调整高度适应新的tab容器
 }
 
 .list-container {
@@ -239,23 +399,30 @@ function goToDetail(item) {
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 10px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); // 轻微阴影
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .item-footer {
   display: flex;
   justify-content: space-between;
-  padding: 8px 16px 12px 16px; // 与 u-cell 内边距对齐
+  padding: 8px 16px 12px 16px;
   font-size: 12px;
   color: #999;
 }
 
-/* 覆盖 u-cell 的默认边距，使 footer 紧跟在 cell 下方 */
+/* 覆盖 u-cell 的默认边距 */
 ::v-deep .u-cell__body {
-  padding: 12px 16px; // 可根据需要调整
+  padding: 12px 16px;
+}
+
+/* 响应式调整 */
+@media (max-width: 375px) {
+  .tab-item {
+    padding: 0 12px;
+  }
+  
+  .tab-text {
+    font-size: 14px;
+  }
 }
 </style>
-
-
-
-

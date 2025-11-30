@@ -25,10 +25,10 @@
       </u-cell-group>
 
       <!-- 质量报警模式下固定为班长 -->
-      <u-cell-group v-else title="报警类型" title-style="font-size: 16px; font-weight: 500;">
+      <u-cell-group v-else title="异常类型" title-style="font-size: 16px; font-weight: 500;">
         <u-cell
-          title="报警类型"
-          value="质量报警"
+          title="异常类型"
+          value="质量异常"
           :border="false"
         />
       </u-cell-group>
@@ -186,7 +186,7 @@ async function handleSubmit() {
       reportData.type = form.type.join(','); // 多选类型用逗号分隔
     } else {
       // 质量报警模式：固定为班长类型
-      reportData.type = 'admin';
+      reportData.type = 'produce';
     }
     
     console.log('提交的报警数据:', reportData);
@@ -195,7 +195,7 @@ async function handleSubmit() {
 
     uni.$u.toast(isFaultMode.value ? '故障报警提交成功！' : '质量报警提交成功！');
     
-    // 跳转回上一页
+    //跳转回上一页
     setTimeout(() => {
       uni.navigateBack();
     }, 800);
