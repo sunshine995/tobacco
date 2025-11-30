@@ -383,13 +383,13 @@ const resetValidation = () => {
 onMounted(async () => {
   const userInfo = uni.getStorageSync('userInfo') || {};
   const position = userInfo.position || '';
+  const support_position=userInfo.support_position || '';
   const role = userInfo.role || '';
-
+console.log("position:",position,"support_position:",support_position)
   // 权限判断
   if (
-    position.includes('段长') ||
-    position.includes('丝库工') ||
-    position.includes('跟班验证员') ||
+    position.includes('段长') || support_position.includes('段长') ||
+    position.includes('丝库工/跟班验证员') || support_position.includes('丝库工/跟班验证员') ||
     role === 'ADMIN'
   ) {
     hasPermission.value = true;

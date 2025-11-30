@@ -184,6 +184,16 @@ const positions = reactive([
     totalCount: 3, 
     dataCount: 0
   },
+   {
+    name: '切片机验证',
+    segment: '切片机',
+    path: 'slicing-machine',
+    verificationStatus: '',
+    currentStep: 0,
+    hasCurrentBatchStatus: false,
+    totalCount: 2, 
+    dataCount: 0
+  },
   {
     name: '真空回潮验证',
     segment: '真空回潮',
@@ -194,16 +204,7 @@ const positions = reactive([
     totalCount: 4, 
     dataCount: 0
   },
-  {
-    name: '切片机验证',
-    segment: '切片机',
-    path: 'slicing-machine',
-    verificationStatus: '',
-    currentStep: 0,
-    hasCurrentBatchStatus: false,
-    totalCount: 2, 
-    dataCount: 0
-  },
+ 
   {
     name: '翻箱机验证',
     segment: '翻箱机',

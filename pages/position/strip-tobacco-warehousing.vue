@@ -410,7 +410,11 @@ const submitCheck = async() => {
 }
 
 .submit-btn {
+<<<<<<< HEAD
   width: 100%;
+=======
+  width: 94%;
+>>>>>>> origin/new
   padding: 20rpx;
   background-color: #007AFF;
   color: white;

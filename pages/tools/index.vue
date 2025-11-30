@@ -35,8 +35,8 @@ const toolList = computed(() => {
 	{name: 'level', title: '动态组' },
 	{name: 'level', title: '箱皮管理' },
 	{name: 'level', title: '膨化烟丝管理' },
-	{name: 'level', title: '残烟丝管理' }
-		
+	{name: 'level', title: '残烟丝管理' },
+  {name:'bookmark',title:'我的学习'}
   ]
 
   if (isAdmin.value) {
@@ -88,6 +88,9 @@ const handleGridClick = (index) => {
 	  break
 	case '残烟丝管理':
 	  url = '/pages/produce/dottle'
+	  break
+	case '我的学习':
+	  url = '/pages/study/learn'
 	  break
     default:
       toastRef.value?.show({

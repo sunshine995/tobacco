@@ -8,7 +8,7 @@
         <view class="form-content">
           <u-input 
             v-model="form.username" 
-                 placeholder="请输入用户名" 
+            placeholder="请输入用户名" 
             class="full-width"
             type="text"
             clearable 
@@ -50,6 +50,20 @@
         </view>
       </view>
 
+      <!-- 生日 -->
+      <view class="form-item">
+        <label class="form-label">出生年月：</label>
+        <view class="form-content">
+          <u-input 
+            v-model="form.birthday" 
+            placeholder="" 
+            class="full-width"
+            type="date"
+            @input="handleInput('birthday')"
+          />
+        </view>
+      </view>
+
       <!-- 部门ID -->
       <view class="form-item">
         <label class="form-label">部门ID：</label>
@@ -83,42 +97,51 @@
         />
       </u-cell-group>
 
-      <!-- 工序段选择 - 仅当选择甲班或乙班时显示 -->
+      <!-- 工序段选择 - 复选框形式 - 仅当选择甲班或乙班时显示 -->
       <u-cell-group v-if="needShowSection" title="工序段选择" title-style="font-size: 16px; font-weight: 500;">
-        <!-- 工序段选择器 -->
-        <u-picker 
-          :show="showSectionPicker" 
-          :columns="sectionColumns" 
-          @confirm="onSectionConfirm" 
-          @cancel="showSectionPicker = false"
-          z-index="9999"
-        />
-        <u-cell 
-          title="选择工序段" 
-          :value="form.section" 
-          is-link 
-          @click="showSectionPicker = true" 
-          :arrow="true"
-        />
-        
-        <!-- 岗位选择器 - 仅当不是中控时显示 -->
-        <template v-if="form.section && form.section !== '中控'">
-          <u-picker 
-            :show="showPositionPicker" 
-            :columns="positionColumns" 
-            @confirm="onPositionConfirm" 
-            @cancel="showPositionPicker = false"
-            z-index="9999"
-          />
-          <u-cell 
-            title="选择岗位" 
-            :value="form.position" 
-            is-link 
-            @click="showPositionPicker = true" 
-            :arrow="true"
-            v-if="form.section"
-          />
-        </template>
+        <view class="checkbox-container">
+          <up-checkbox-group 
+            v-model="form.sections"
+            placement="column"
+            @change="handleSectionChange"
+          >
+            <up-checkbox 
+              :customStyle="{marginBottom: '10px'}"
+              v-for="(item, index) in sectionsList"
+              :key="index"
+              :label="item.name"
+              :name="item.name"
+              :disabled="item.disabled"
+            >
+              {{ item.name }}
+            </up-checkbox>
+          </up-checkbox-group>
+        </view>
+      </u-cell-group>
+      
+      <!-- 岗位选择 - 复选框形式 - 仅当选择了工序段时显示 -->
+      <u-cell-group v-if="needShowSection && form.sections && form.sections.length > 0" title="岗位选择" title-style="font-size: 16px; font-weight: 500;">
+        <view class="checkbox-container" v-if="currentPositions && currentPositions.length > 0">
+          <up-checkbox-group 
+            v-model="form.positions"
+            placement="column"
+            @change="handlePositionChange"
+          >
+            <up-checkbox 
+              :customStyle="{marginBottom: '10px'}"
+              v-for="(item, index) in currentPositions"
+              :key="index"
+              :label="item.name"
+              :name="item.name"
+              :disabled="item.disabled"
+            >
+              {{ item.section }} - {{ item.name }}
+            </up-checkbox>
+          </up-checkbox-group>
+        </view>
+        <view class="no-positions" v-else-if="form.sections.some(s => s === '中控' || s === '除尘工' || s === '派遣工')">
+          该工序段不需要选择岗位
+        </view>
       </u-cell-group>
 
       <!-- 子组选择 - 仅当选择维修组、电气组或管理组时显示 -->
@@ -206,24 +229,24 @@ export default {
       
       // 选择器显示控制
       showClassPicker: false,
-      showSectionPicker: false,
-      showPositionPicker: false,
       showBranchPicker: false,
       showGroupPicker: false,
+
       
       // 表单项数据
       form: {
         username: '',
         password: '',
         phone: '',
+        birthday: '', // 新增：生日字段
         departmentId: '',
         classes: '',
-        section: '',
-        position: '',
+        sections: [],
+        positions: [],
         party: '',
         member: '',
-        role: 'USER',
-        subGroup: '' // 新增子组字段
+        role: 'user',
+        subGroup: ''
       },
       
       // 班级选择列
@@ -241,39 +264,57 @@ export default {
       // 子组选择列
       subGroupColumns: [[]],
       
-      // 工序段选择列
-      sectionColumns: [
-        ['真空回潮段', '储叶加料段', '切丝段', '掺配加香段', '梗线段', '中控']
+      // 工序段数据
+      sectionsList: [
+        { name: '真空回潮段', disabled: false },
+        { name: '储叶加料段', disabled: false },
+        { name: '切丝段', disabled: false },
+        { name: '掺配加香段', disabled: false },
+        { name: '梗线段', disabled: false },
+        { name: '中控', disabled: false },
+        { name: '除尘工', disabled: false },
+        { name: '派遣工', disabled: false }
       ],
       
       // 岗位数据映射
       positionMap: {
-        '真空回潮段': ['片烟入库', '片烟出库', '机械手A', '机械手B', '切片机A', '切片机B', '真空回潮A', '真空回潮B'],
-        '储叶加料段': ['翻箱机A', '翻箱机B', '松散回潮A', '松散回潮B', '激光除杂A', '激光除杂B', '预混柜', '加料机A', '加料机B', '储叶柜'],
-        '切丝段': ['增温增湿A', '增温增湿B', '增温增湿C', '切丝机A', '切丝机B', '切丝机C', '烘丝机A', '烘丝机B', 'HDT'],
-        '掺配加香段': ['膨化烟丝掺兑', '梗丝掺兑', '加香机A', '加香机B', '混丝柜', '装箱站A', '装箱站B', '丝库'],
-        '梗线段': ['梗丝生产线岗位']
+        '真空回潮段': ['段长','片烟入库','片烟出库', '机械手A', '机械手B', '切片机A', '切片机B', '真空回潮A', '真空回潮B'],
+        '储叶加料段': ['段长','翻箱机A', '翻箱机B', '松散回潮A', '松散回潮B', '激光除杂A', '激光除杂B', '预混柜', '加料机A', '加料机B', '储叶柜'],
+        '切丝段': ['段长','增温增湿A', '增温增湿B', '增温增湿C', '切丝机A', '切丝机B', '切丝机C', '烘丝机A', '烘丝机B/C','挑杂工'],
+        '掺配加香段': ['段长','膨化烟丝掺兑', '膨化烟丝储丝','膨化烟丝挑杂工', '加香机A', '加香机B', '混丝柜', '装箱站A', '装箱站B', '丝库工/跟班验证员'],
+        '梗线段': ['外加梗工‘', '水洗梗工', '梗激光除杂', '梗子回潮工admois', '切梗工', '梗加料工', 'CTD','梗加香','梗丝掺兑',],
+        '中控': ['片烟入库中控', '叶线中控','丝线中控','丝库中控','中控室白班'],
+        '除尘工': ['除尘工'],
+		'派遣工': ['派遣工']
       },
       
-      // 岗位选择列
-      positionColumns: [[]],
+      // 岗位数据 - 将根据选择的工序段动态生成
+      currentPositions: [],
+      // 当前选中的工序段岗位映射
+      selectedPositionsMap: {},
       
       // 支部选择列
       branchColumns: [
-        ['第一党支部', '第二党支部']
+        ['第一支部', '第二支部']
       ],
       
       // 小组数据映射
       groupMap: {
-        '第一党支部': ['甲小组', '白小组'],
-        '第二党支部': ['乙小组', '白小组']
+        '第一支部': ['甲小组', '白小组'],
+        '第二支部': ['乙小组', '白小组']
       },
       
       // 小组选择列
       groupColumns: [[]],
       
       // 子组选择器显示控制
-      showSubGroupPicker: false
+      showSubGroupPicker: false,
+      
+      // 工序段和岗位选择器（已改为复选框，保留兼容性）
+      showSectionPicker: false,
+      showPositionPicker: false,
+      sectionColumns: [[]],
+      positionColumns: [[]]
     }
   },
   
@@ -291,14 +332,11 @@ export default {
   
   watch: {
     // 监听工序段变化，更新岗位选项
-    'form.section': function(newVal) {
-      if (newVal && this.positionMap[newVal]) {
-        this.positionColumns = [this.positionMap[newVal]]
-        this.form.position = '' // 清空岗位选择
-      } else {
-        this.positionColumns = [[]]
-        this.form.position = ''
-      }
+    'form.sections': function(newVal) {
+      this.updateCurrentPositions();
+      // 清空已选岗位
+      this.form.positions = [];
+      this.selectedPositionsMap = {};
     },
     
     // 监听支部变化，更新小组选项
@@ -325,34 +363,38 @@ export default {
   },
   
   methods: {
+
+
     // 重置表单数据
     resetForm() {
       this.form = {
         username: '',
         password: '',
         phone: '',
+        birthday: '', // 新增：重置生日字段
         departmentId: '',
         classes: '',
-        section: '',
-        position: '',
+        sections: [],
+        positions: [],
         party: '',
         member: '',
-        role: 'USER'
+        role: 'user',
+        subGroup: ''
       }
       this.registerTip = ''
-      this.positionColumns = [[]]
+      this.currentPositions = []
+      this.selectedPositionsMap = {}
       this.groupColumns = [[]]
       this.subGroupColumns = [[]]
-      this.form.subGroup = ''
     },
     
     // 输入事件：清空提示 + 手机号过滤
     handleInput(type) {
       this.registerTip = ''
-      // 手机号仅保留数字
-      if (type === 'phone') {
-        this.form.phone = this.form.phone.replace(/[^\d]/g, '')
-      }
+      // // 手机号仅保留数字
+      // if (type === 'phone') {
+      //   this.form.phone = this.form.phone.replace(/[^\d]/g, '')
+      // }
     },
     
     // 班级选择确认
@@ -362,8 +404,10 @@ export default {
       
       // 如果不是甲班或乙班，清空工序段和岗位
       if (!this.needShowSection) {
-        this.form.section = ''
-        this.form.position = ''
+        this.form.sections = []
+        this.form.positions = []
+        this.selectedPositionsMap = {}
+        this.currentPositions = []
       }
     },
     
@@ -373,21 +417,48 @@ export default {
       this.showSubGroupPicker = false
     },
     
-    // 工序段选择确认
-    onSectionConfirm(e) {
-      this.form.section = e.value[0]
-      this.showSectionPicker = false
-      
-      // 如果是中控，不需要选择岗位
-      if (this.form.section === '中控') {
-        this.form.position = ''
+    // 更新当前可选岗位
+    updateCurrentPositions() {
+      if (!this.form.sections || this.form.sections.length === 0) {
+        this.currentPositions = [];
+        return;
       }
+      
+      // 合并所有选中工序段的岗位
+      const allPositions = [];
+      this.form.sections.forEach(section => {
+        if (this.positionMap[section]) {
+          const positions = this.positionMap[section].map(pos => ({
+            name: pos,
+            section: section,
+            disabled: false
+          }));
+          allPositions.push(...positions);
+        }
+      });
+      this.currentPositions = allPositions;
     },
     
-    // 岗位选择确认
-    onPositionConfirm(e) {
-      this.form.position = e.value[0]
-      this.showPositionPicker = false
+    // 工序段复选框变化处理
+    handleSectionChange(e) {
+      this.form.sections = e;
+    },
+    
+    // 岗位复选框变化处理
+    handlePositionChange(e) {
+      this.form.positions = e;
+      
+      // 更新选中岗位的映射关系
+      this.selectedPositionsMap = {};
+      this.form.positions.forEach(pos => {
+        const positionItem = this.currentPositions.find(p => p.name === pos);
+        if (positionItem && positionItem.section) {
+          if (!this.selectedPositionsMap[positionItem.section]) {
+            this.selectedPositionsMap[positionItem.section] = [];
+          }
+          this.selectedPositionsMap[positionItem.section].push(pos);
+        }
+      });
     },
     
     // 支部选择确认
@@ -425,6 +496,11 @@ export default {
         this.registerTip = '请输入正确的手机号格式'
         return
       }
+      // 新增：生日校验
+      if (!this.form.birthday) {
+        this.registerTip = '请选择生日'
+        return
+      }
       if (!this.form.departmentId.trim()) {
         this.registerTip = '请输入部门ID'
         return
@@ -442,28 +518,136 @@ export default {
       
       // 只有甲班和乙班需要验证工序段和岗位
       if (this.needShowSection) {
-        if (!this.form.section) {
+        if (!this.form.sections || this.form.sections.length === 0) {
           this.registerTip = '请选择工序段'
           return
         }
-        // 中控不需要验证岗位
-        if (this.form.section !== '中控' && !this.form.position) {
+        
+        // 检查是否所有非中控、非除尘工、非派遣工的工序段都选择了岗位
+        const needPositionSections = this.form.sections.filter(section => 
+          section !== '中控' && section !== '除尘工' && section !== '派遣工'
+        );
+        
+        if (needPositionSections.length > 0 && this.form.positions.length === 0) {
           this.registerTip = '请选择岗位'
           return
         }
       }
 
+      // 准备提交数据 - 不直接展开this.form，而是逐个添加字段以控制subGroup的处理
+      // 明确包含所有可能的字段，并为每个字段提供默认值
+      const submitForm = {
+        username: this.form.username || '',
+        password: this.form.password || '',
+        phone: this.form.phone || '',
+        birthday: this.form.birthday || '1900-01-01', // 使用默认日期而非空字符串
+        department: this.form.departmentId === '1' ? '制丝车间' : this.form.departmentId === '2' ? '卷包车间' : '',
+        classes: this.form.classes || '',
+        section: this.form.sections && this.form.sections.length > 0 ? this.form.sections.join(',') : '-', // 使用'-'代替空字符串
+        party: this.form.party || '-', // 使用'-'代替空字符串
+        member: this.form.member || '-', // 使用'-'代替空字符串
+        role: 'USER', // 默认值
+        line: '-', // 默认值
+        position: '-', // 默认值
+        support_position: '-' // 默认值
+      };
+      
+      // 根据选择的班级自动设置角色
+      if (this.form.classes === '电气组') {
+        submitForm.role = 'electrical';
+      } else if (this.form.classes === '维修组') {
+        submitForm.role = 'mechanical';
+      } else if (this.form.classes === '管理组') {
+        submitForm.role = 'admin';
+      } else {
+        submitForm.role = 'user';
+      }
+      
+      if (['维修组', '电气组'].includes(this.form.classes) && this.form.subGroup) {
+        if (this.form.subGroup === '组长') {
+          // 维修组和电气组的子组是组长时，存到position字段
+          submitForm.position = this.form.subGroup;
+        } else {
+          // 其他子组存到line字段
+          submitForm.line = this.form.subGroup;
+        }
+      } else if (this.form.classes === '管理组' && this.form.subGroup) {
+        // 管理组的子组存到position字段
+        submitForm.position = this.form.subGroup;
+      } else if (!['甲班', '乙班'].includes(this.form.classes)) {
+        // 对于非甲班、乙班的其他情况，保持默认值'-'
+        // 不做额外修改，确保字段不为null
+      }
+      
+      // 根据岗位设置line字段，并处理多选岗位（仅适用于甲班和乙班）
+      if (this.needShowSection && this.form.positions && this.form.positions.length > 0) {
+        let mainPosition = this.form.positions[0];
+        let line = '';
+        
+        // 遍历岗位，找到对应的生产线标识
+        for (const position of this.form.positions) {
+          // 检查岗位所属工序段和生产线标识
+          if ((this.form.sections.includes('真空回潮段') || this.form.sections.includes('储叶加料段'))) {
+            if (position.includes('A')) {
+              line = '叶A';
+              mainPosition = position;
+              break;
+            } else if (position.includes('B')) {
+              line = '叶B';
+              mainPosition = position;
+              break;
+            }
+          } else if ((this.form.sections.includes('切丝段') || this.form.sections.includes('掺配加香段'))) {
+            if (position.includes('A')) {
+              line = '丝A';
+              mainPosition = position;
+              break;
+            } else if (position.includes('B') || position.includes('C')) {
+              line = '丝B/C';
+              mainPosition = position;
+              break;
+            }
+          }
+        }
+        
+        // 设置line字段 - 只有当line有实际值时才覆盖默认值'-'
+        if (line && line.trim() !== '') {
+          submitForm.line = line;
+        }
+        
+        // 设置position字段 - 只有当mainPosition有实际值时才覆盖默认值'-'
+        if (mainPosition && mainPosition.trim() !== '') {
+          submitForm.position = mainPosition;
+        }
+        
+        // 设置support_position字段
+        if (this.form.positions && this.form.positions.length > 1) {
+          // 移除主岗位后，其余岗位作为辅助岗位
+          const supportPositions = this.form.positions.filter(pos => pos !== mainPosition);
+          submitForm.support_position = supportPositions.join(',') || '';
+          console.log('设置support_position:', submitForm.support_position);
+        } else {
+          // 当只有一个岗位或没有岗位时，设置为空字符串
+          submitForm.support_position = '';
+          console.log('设置support_position为空字符串');
+        }
+      }
+
+      // 打印提交内容到控制台
+      console.log('注册提交的表单内容:', submitForm);
+      
       // 开始注册
       this.loading = true
       this.registerTip = ''
-	  
 
       try {
-        const result = await registerApi(this.form)
-		
-        if (result.msg) {
+        const result = await registerApi(submitForm)
+		console.log('注册API响应:', result);
+        
+        // 根据API响应截图，使用code字段判断成功更可靠
+        if (result.code === 200 || (result.data && result.data.code === 200)) {
           uni.showToast({
-            title: '注册成功',
+            title: result.data?.msg || '注册成功',
             icon: 'success',
             duration: 2000
           })
@@ -473,7 +657,9 @@ export default {
             uni.navigateTo({ url: '/pages/user/login' })
           }, 2000) // 与toast显示时间保持一致
         } else {
-          this.registerTip = result.msg || '注册失败'
+          // 错误处理更详细
+          this.registerTip = result.data?.msg || result.msg || '注册失败'
+          console.warn('注册失败:', this.registerTip)
         }
       } catch (error) {
         this.registerTip = '注册失败，请稍后重试'
@@ -563,6 +749,32 @@ export default {
   background-color: #fff;
   border-radius: 4px;
   overflow: hidden;
+}
+
+/* 复选框容器样式 */
+.checkbox-container {
+  padding: 16px;
+  background-color: #f5f5f5;
+}
+
+/* 无岗位提示样式 */
+.no-positions {
+  padding: 16px;
+  background-color: #f9f9f9;
+  color: #999;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* 适配复选框样式 */
+:deep(.up-checkbox-group) {
+  width: 100%;
+}
+
+:deep(.up-checkbox) {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px !important;
 }
 :deep(.u-cell-group__title) {
   padding: 10px 15px;
