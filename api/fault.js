@@ -92,7 +92,6 @@ export const deleteFault = (id) => {
 export const getFaultListByTypeApi = (params = {}) => {
   return get(API.LIST, params)
     .then(result => {
-      // console.log('[API] 按类别获取故障列表:', repairType, result)
       return result
     })
 }

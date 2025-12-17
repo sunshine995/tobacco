@@ -298,6 +298,13 @@
 			}
 		},
 		{
+			"path" : "pages/fault/fault-produce",
+			"style" : 
+			{
+				"navigationBarTitleText" : "质量异常"
+			}
+		},
+		{
 			"path" : "pages/study/learn",
 			"style" : 
 			{
@@ -336,6 +343,27 @@
 			"style" : 
 			{
 				"navigationBarTitleText" : "设备保养"
+			}
+		},
+		{
+			"path" : "pages/sixs/sixs",
+			"style" : 
+			{
+				"navigationBarTitleText" : "每日6s任务"
+			}
+		},
+		{
+			"path" : "pages/sixs/sixs-check",
+			"style" : 
+			{
+				"navigationBarTitleText" : "6s任务"
+			}
+		},
+		{
+			"path" : "pages/sixs/check",
+			"style" : 
+			{
+				"navigationBarTitleText" : "6s任务详情"
 			}
 		}
   ],

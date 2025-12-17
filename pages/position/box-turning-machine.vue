@@ -8,20 +8,30 @@
     <!-- 页面内容 -->
     <view class="content-section">
        <!-- 开班检查 --> 
-        <view class="check-section" v-if="myOrder.number && (myOrder.number.includes('预混柜') || myOrder.number.trim() === '1' || myOrder.number.includes('1'))">
-          <view class="check-section-title"> 
-            <text class="section-sub-title">开班检查</text> 
-          </view> 
-         <text class="upload-title">三压图片</text>
-          <upload-image
-            ref="pressureUploadRef"
-            title="添加三压图片"
-            :max-count="3"
-            @success="(e) => handleImageUploadSuccess(e, 'imagesPressure')"
-            @remove="(e) => handleImageRemove(e, 'imagesPressure')"
-            class="upload-card-item"
-          />
-        </view>
+       <view v-if="myOrder.number === '1'" class="check-section">
+         <text class="section-title">开班检查</text>
+         
+         <!-- 三压图片上传 -->
+         <view class="upload-section">
+           <text class="upload-title">三压图片</text>
+           <upload-image
+             ref="pressureUploadRef"
+             title="添加三压图片"
+             :max-count="3"
+           />
+         </view>
+         
+         <!-- 提交按钮 -->
+         <up-button
+           type="primary"
+           @click="submitModule('startCheck')"
+           :loading="submitting"
+           class="submit-btn-main-check"
+           :disabled="submitting || hasSubmittedModules.startCheck"
+         >
+           {{ submitting ? '提交中...' : hasSubmittedModules.startCheck ? '已提交' : '提交检查' }}
+         </up-button>
+       </view>
       <!-- 过料前检查区域 -->
       <view class="check-section">
         <text class="section-title">过料前检查</text>
@@ -54,9 +64,15 @@
           />
         </view>
         <!-- 提交按钮 -->
-        <view class="submit-btn" @click="submitCheck" :class="{ 'disabled': submitting }">
-          <text>{{ submitting ? '提交中...' : '提交检查' }}</text>
-        </view>
+        <up-button
+          type="primary"
+          @click="submitModule('mainCheck')"
+          :loading="submitting"
+          class="submit-btn-main-check"
+          :disabled="submitting || hasSubmittedModules.mainCheck"
+        >
+          {{ submitting ? '提交中...' : hasSubmittedModules.mainCheck ? '已提交' : '提交检查' }}
+        </up-button>
       </view>
       
       <!-- 三级验证区域 -->
@@ -97,42 +113,41 @@ const myOrder = ref({
   brand: '',
   number: '' // 添加number属性用于v-if判断
 });
-const imagesPressure = ref([]); // 存储三压图片URL
 
 // 上传组件的ref
+const pressureUploadRef = ref(null);
 const brandPhotoRef = ref(null);
 const batchPhotoRef = ref(null);
-const finalBoxPhotoRef = ref(null); // 料结束后周转箱数量照片引用
-const pressureUploadRef = ref(null); // 三压图片引用
+const finalBoxPhotoRef = ref(null);
 
 // 提交状态
 const submitting = ref(false);
+
 // 切片机周转箱数量
 const slicerBoxCount = ref('');
+
+// 模块提交状态追踪
+const hasSubmittedModules = ref({
+  startCheck: false,      // 开班检查
+  mainCheck: false        // 主要检查（过料前检查）
+});
+
+// 全局已提交数据容器
+const allData = ref({
+  imagesPressure: [],     // 三压图片
+  brandPhotoUrl: '',
+  finalBoxPhotoUrl: '',
+  batchPhotoUrl: ''
+});
 
 // 处理图片上传成功
 const handleImageUploadSuccess = (e, type) => {
   console.log('图片上传成功:', e, type);
-  if (type === 'imagesPressure') {
-    // 将上传的图片URL添加到imagesPressure数组
-    if (e.url) {
-      imagesPressure.value.push(e.url);
-      console.log('三压图片已添加:', imagesPressure.value);
-    }
-  }
 };
 
 // 处理图片移除
 const handleImageRemove = (e, type) => {
   console.log('图片移除:', e, type);
-  if (type === 'imagesPressure') {
-    // 从imagesPressure数组中移除对应的图片URL
-    const index = imagesPressure.value.indexOf(e.url);
-    if (index > -1) {
-      imagesPressure.value.splice(index, 1);
-      console.log('三压图片已移除:', imagesPressure.value);
-    }
-  }
 };
 
 // 从全局状态获取工单信息
@@ -190,40 +205,45 @@ const loadExistingCheckRecord = async (batchNo) => {
     if (res && res.verificationResult) {
       const record = res;
       
-      // 回显图片
-    if (record.verificationResult.brandPhotoUrl) {
-      await nextTick();
-      if (brandPhotoRef.value && brandPhotoRef.value.setPreviewImages) {
-        brandPhotoRef.value.setPreviewImages([record.verificationResult.brandPhotoUrl]);
+      // 回显开班检查数据
+      if (record.verificationResult.imagesPressure && record.verificationResult.imagesPressure.length > 0) {
+        await nextTick();
+        if (pressureUploadRef.value && pressureUploadRef.value.setPreviewImages) {
+          pressureUploadRef.value.setPreviewImages(record.verificationResult.imagesPressure);
+          allData.value.imagesPressure = [...record.verificationResult.imagesPressure];
+          hasSubmittedModules.value.startCheck = true;
+          console.log('三压图片已回显:', allData.value.imagesPressure);
+        }
       }
-    }
-    
-    // 回显料结束后周转箱数量照片
-    if (record.verificationResult.finalBoxPhotoUrl) {
-      await nextTick();
-      if (finalBoxPhotoRef.value && finalBoxPhotoRef.value.setPreviewImages) {
-        finalBoxPhotoRef.value.setPreviewImages([record.verificationResult.finalBoxPhotoUrl]);
-      }
-    }
-    
-    // 回显三压图片
-    if (record.verificationResult.pressurePhotos && record.verificationResult.pressurePhotos.length > 0) {
-      await nextTick();
-      if (pressureUploadRef.value && pressureUploadRef.value.setPreviewImages) {
-        pressureUploadRef.value.setPreviewImages(record.verificationResult.pressurePhotos);
-        // 更新imagesPressure数组
-        imagesPressure.value = [...record.verificationResult.pressurePhotos];
-        console.log('三压图片已回显:', imagesPressure.value);
-      }
-    }
       
-      // 验证相关数据处理
-      if (record.verificationResult) {
-        console.log('加载到的验证记录:', record.verificationResult);
+      // 回显其他图片
+      if (record.verificationResult.brandPhotoUrl) {
+        await nextTick();
+        if (brandPhotoRef.value && brandPhotoRef.value.setPreviewImages) {
+          brandPhotoRef.value.setPreviewImages([record.verificationResult.brandPhotoUrl]);
+          allData.value.brandPhotoUrl = record.verificationResult.brandPhotoUrl;
+          hasSubmittedModules.value.mainCheck = true;
+        }
+      }
+    
+      if (record.verificationResult.finalBoxPhotoUrl) {
+        await nextTick();
+        if (finalBoxPhotoRef.value && finalBoxPhotoRef.value.setPreviewImages) {
+          finalBoxPhotoRef.value.setPreviewImages([record.verificationResult.finalBoxPhotoUrl]);
+          allData.value.finalBoxPhotoUrl = record.verificationResult.finalBoxPhotoUrl;
+        }
+      }
+      
+      if (record.verificationResult.batchPhotoUrl) {
+        await nextTick();
+        if (batchPhotoRef.value && batchPhotoRef.value.setPreviewImages) {
+          batchPhotoRef.value.setPreviewImages([record.verificationResult.batchPhotoUrl]);
+          allData.value.batchPhotoUrl = record.verificationResult.batchPhotoUrl;
+        }
       }
     }
     
-    // 获取切片机周转箱数量（从切片机的数据中获取）
+    // 获取切片机周转箱数量
     try {
       const slicerData = await byBatchIdAndSegment(batchNo, "切片机");
       if (slicerData && slicerData.verificationResult && slicerData.verificationResult.boxCount) {
@@ -232,11 +252,9 @@ const loadExistingCheckRecord = async (batchNo) => {
       }
     } catch (slicerError) {
       console.warn('获取切片机周转箱数量失败:', slicerError);
-      // 不阻断流程
     }
   } catch (error) {
     console.warn('加载历史记录失败:', error);
-    // 不阻断流程，允许用户重新提交
   }
 };
 
@@ -282,92 +300,115 @@ const handleValidate = (status) => {
   console.log('验证状态:', status);
 };
 
-// 提交检查结果
-const submitCheck = async () => {
+// 合并当前模块的数据到全局数据容器
+const mergeCurrentModuleData = (moduleType) => {
+  switch (moduleType) {
+    case 'startCheck':
+      allData.value.imagesPressure = pressureUploadRef.value?.getAllImageUrls() || [];
+      break;
+    case 'mainCheck':
+      allData.value.brandPhotoUrl = brandPhotoRef.value?.getUploadedUrls()[0] || '';
+      allData.value.finalBoxPhotoUrl = finalBoxPhotoRef.value?.getUploadedUrls()[0] || '';
+      if (batchPhotoRef.value) {
+        allData.value.batchPhotoUrl = batchPhotoRef.value?.getUploadedUrls()[0] || '';
+      }
+      break;
+  }
+};
+
+// 模块化提交方法
+const submitModule = async (moduleType) => {
+  if (submitting.value || hasSubmittedModules.value[moduleType]) return;
   try {
     submitting.value = true;
-    
-    // 检查是否已选择图片
-    const brandFiles = brandPhotoRef.value?.getFiles() || [];
-    const finalBoxFiles = finalBoxPhotoRef.value?.getFiles() || [];
-    
-    // 检查batchPhotoRef是否存在并验证
-    if (batchPhotoRef.value) {
-      const batchFiles = batchPhotoRef.value.getFiles() || [];
-      if (batchFiles.length === 0) {
-        uni.showToast({ title: '请上传批次号照片', icon: 'none' });
-        return;
-      }
+
+    // 1. 验证当前模块
+    let validatePass = true;
+    let errorMsg = '';
+    const uploadPromises = [];
+
+    switch (moduleType) {
+      case 'startCheck':
+        if (pressureUploadRef.value.getAllImageUrls().length === 0) {
+          validatePass = false;
+          errorMsg = '请上传三压图片';
+        } else {
+          uploadPromises.push(pressureUploadRef.value.triggerUpload());
+        }
+        break;
+      case 'mainCheck':
+        if (brandPhotoRef.value.getAllImageUrls().length === 0) {
+          validatePass = false;
+          errorMsg = '请上传过料前牌号照片';
+        } else {
+          uploadPromises.push(brandPhotoRef.value.triggerUpload());
+        }
+        
+        if (finalBoxPhotoRef.value.getAllImageUrls().length === 0) {
+          validatePass = false;
+          errorMsg = '请上传料结束后周转箱数量照片';
+        } else {
+          uploadPromises.push(finalBoxPhotoRef.value.triggerUpload());
+        }
+        
+        if (batchPhotoRef.value && batchPhotoRef.value.getAllImageUrls().length === 0) {
+          validatePass = false;
+          errorMsg = '请上传批次号照片';
+        } else if (batchPhotoRef.value) {
+          uploadPromises.push(batchPhotoRef.value.triggerUpload());
+        }
+        break;
     }
-    
-    if (brandFiles.length === 0) {
-      uni.showToast({ title: '请上传过料前牌号照片', icon: 'none' });
+
+    if (!validatePass) {
+      uni.showToast({ title: errorMsg, icon: 'none' });
       return;
     }
-    
-    if (finalBoxFiles.length === 0) {
-      uni.showToast({ title: '请上传料结束后周转箱数量照片', icon: 'none' });
-      return;
-    }
-   
-    
-    // 上传图片
-    const brandUploadResults = await brandPhotoRef.value.triggerUpload();
-    const finalBoxUploadResults = await finalBoxPhotoRef.value.triggerUpload();
-    
-    // 如果存在batchPhotoRef，也上传相关图片
-    let batchPhotoUrl = '';
-    if (batchPhotoRef.value) {
-      await batchPhotoRef.value.triggerUpload();
-      batchPhotoUrl = batchPhotoRef.value.getUploadedUrls()[0] || '';
-    }
-   
-    
-    // 获取上传成功的图片URL
-    const brandPhotoUrl = brandPhotoRef.value.getUploadedUrls()[0];
-    const finalBoxPhotoUrl = finalBoxPhotoRef.value.getUploadedUrls()[0];
-    
-    
-    if (!brandPhotoUrl || !finalBoxPhotoUrl) {
-      uni.showToast({ title: '图片上传失败，请重试', icon: 'none' });
-      return;
-    }
-    
-    // 构造提交数据
+
+    // 2. 上传当前模块图片
+    if (uploadPromises.length > 0) await Promise.all(uploadPromises);
+
+    // 3. 合并当前模块数据到全局已提交数据
+    mergeCurrentModuleData(moduleType);
+
+    // 4. 构建并提交（包含所有已提交模块的内容）
     const submitData = {
-      batchId: myOrder.value.batchNo,
+      batchId: myOrder.value.batchNo || '',
       brand: myOrder.value.brand,
       segment: "翻箱机",
-      verificationResult: {
-        brandPhotoUrl,
-        finalBoxPhotoUrl,
-        ...(batchPhotoUrl && { batchPhotoUrl }),
-        Status: 'normal',
-        pressurePhotos: imagesPressure.value // 三压图片数据
-      },
-      dataCount: 1,
-      operatorId: uni.getStorageSync('userId')
+      verificationResult: allData.value,
+      dataCount: Object.keys(allData.value).filter(key => {
+        const val = allData.value[key];
+        return (Array.isArray(val) && val.length > 0) || (typeof val === 'string' && val.length > 0) || (typeof val === 'object' && val !== null && Object.keys(val).length > 0);
+      }).length,
+      operatorId: uni.getStorageSync('userId') || '',
+      workOrderId: myOrder.value.id
     };
-    
-    console.log('提交验证数据:', submitData);
-    
-    // 调用提交API
+
+    console.log('最终提交数据（包含所有已提交模块）:', submitData);
     await submitMaterialCheck(submitData);
-    
-    uni.showToast({
-      title: '提交成功',
-      icon: 'success'
-    });
-    
+
+    // 5. 标记当前模块为已提交
+    hasSubmittedModules.value[moduleType] = true;
+    uni.showToast({ title: '提交成功', icon: 'success' });
+
+    // 6. 重新加载数据，确保页面显示最新内容
+    setTimeout(() => {
+      if (myOrder.value.batchNo) {
+        loadExistingCheckRecord(myOrder.value.batchNo);
+      }
+    }, 1500);
   } catch (error) {
     console.error('提交失败:', error);
-    uni.showToast({
-      title: error.message || '提交失败，请重试',
-      icon: 'none'
-    });
+    uni.showToast({ title: error.message || '提交失败，请重试', icon: 'none' });
   } finally {
     submitting.value = false;
   }
+};
+
+// 提交检查结果
+const submitCheck = async () => {
+  await submitModule('mainCheck');
 };
 </script>
 
@@ -404,7 +445,7 @@ const submitCheck = async () => {
   margin-bottom: 30rpx;
 }
 
-/* 过料前检查区域 */
+/* 开班检查区域 */
 .check-section {
   margin-top: 30rpx;
 }
@@ -454,6 +495,21 @@ const submitCheck = async () => {
 }
 
 /* 提交按钮 */
+.submit-btn-main-check {
+  background-color: #007AFF;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  height: 52rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 122, 255, 0.3);
+  margin-top: 20rpx;
+}
+
+.submit-btn-main-check:disabled {
+  background-color: #c0c0c0;
+  box-shadow: 0 2rpx 8rpx rgba(192, 192, 192, 0.3);
+}
+
 .submit-btn {
   width: 100%;
   padding: 24rpx;

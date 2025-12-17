@@ -1,5 +1,4 @@
 import { get, post, postFormData, put } from '@/utils/request'
-import { uploadFilesWithForm } from '@/utils/upload'; // 你已有的上传工具
 
 // ✅ 修改 publishNotice 函数
 export const publishNotice = (data) => {

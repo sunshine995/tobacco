@@ -6,11 +6,7 @@
         v-for="(item, index) in toolList"
         :key="index"
       >
-        <u-icon
-          :customStyle="{ paddingTop: '20rpx' }"
-          :name="item.name"
-          :size="22"
-        />
+        <view class="grid-icon">{{ item.emoji || '⚠️' }}</view>
         <text class="grid-text">{{ item.title }}</text>
       </u-grid-item>
     </u-grid>
@@ -29,19 +25,20 @@ const isAdmin = computed(() => userInfo.value.role === 'ADMIN')
 // 动态工具列表pages/admin/group
 const toolList = computed(() => {
   const list = [
-    { name: 'error-circle', title: '异常上报' },
-    { name: 'star', title: '异常信息' },
-	{name: 'grid', title: '我的工单' },
-	{name: 'level', title: '动态组' },
-	{name: 'level', title: '箱皮管理' },
-	{name: 'level', title: '膨化烟丝管理' },
-	{name: 'level', title: '残烟丝管理' },
-  {name:'bookmark',title:'我的学习'}
+    { name: 'error-circle', title: '异常上报', emoji: '⚠️' },
+    { name: 'star', title: '异常信息', emoji: '🔍' },
+    { name: 'grid', title: '我的工单', emoji: '📋' },
+    { name: 'level', title: '动态组', emoji: '🧑‍🤝‍🧑' },
+    { name: 'level', title: '箱皮管理', emoji: '📦' },
+    { name: 'level', title: '膨化烟丝管理', emoji: '🌾' },
+    { name: 'level', title: '残烟丝管理', emoji: '🧹' },
+    { name: 'bookmark', title: '我的学习', emoji: '📚' },
+	{ name: '6s', title: '每日6s', emoji: '6⃣' }
   ]
 
   if (isAdmin.value) {
-    list.unshift({ name: 'volume', title: '发布公告' })
-	list.unshift({ name: 'coupon', title: '发布工单' })
+    list.unshift({ name: 'volume', title: '发布公告', emoji: '📢' })
+    list.unshift({ name: 'coupon', title: '发布工单', emoji: '🛠️' })
   }
 
   return list
@@ -92,6 +89,9 @@ const handleGridClick = (index) => {
 	case '我的学习':
 	  url = '/pages/study/learn'
 	  break
+	case '每日6s':
+	  url = '/pages/sixs/sixs-check'
+	  break
     default:
       toastRef.value?.show({
         type: 'info',
@@ -116,5 +116,18 @@ const handleGridClick = (index) => {
   font-size: 14px;
   color: #909399;
   padding: 10rpx 0 20rpx;
+}
+
+.grid-icon {
+  font-size: 40rpx;
+  width: 72rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  text-align: center;
+  margin: 0 auto;
+  border-radius: 12rpx;
+  background: linear-gradient(180deg, rgba(255,243,205,0.9) 0%, rgba(255,238,186,0.9) 100%);
+  color: #d9822b;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
 }
 </style>

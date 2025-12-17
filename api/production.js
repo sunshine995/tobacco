@@ -1,6 +1,5 @@
 // api/production.js
 import { get, post, postFormData } from '@/utils/request'
-import { uploadFilesWithForm } from '@/utils/upload'; // 你已有的上传工具
 
 export const submitSingleBatch = (data) => {
 	return post('/api/work/save', data)

@@ -13,6 +13,21 @@
       ></u-swiper>
     </view>
 
+    <!-- 区域每日任务（普通用户固定显示） -->
+    <view v-if="!isAdmin()" class="daily-task-section">
+      <view class="daily-task-header">
+        <text class="daily-task-title">区域每日任务</text>
+        <text class="daily-task-sub">今日待完成（固定任务）</text>
+      </view>
+      <up-grid :border="false" column-num="4">
+        <up-grid-item v-for="(t, idx) in dailyTasks" :key="idx" @click="handleDailyTaskClick(t)">
+          <up-icon :name="t.icon" size="28" :color="t.color || '#4a4a4a'" />
+          <text class="daily-task-item-title">{{ t.title }}</text>
+          <text class="daily-task-item-desc">{{ t.desc }}</text>
+        </up-grid-item>
+      </up-grid>
+    </view>
+
     <!-- 公告列表 -->
     <view class="notice-list">
       <view v-for="item in notices" :key="item.noticeId || item.id" class="notice-item" @click="viewDetail(item)">
@@ -87,6 +102,29 @@ const getUserRole = () => {
 // 检查是否为管理员
 const isAdmin = () => {
   return getUserRole() === 'ADMIN';
+};
+
+// 区域每日任务（固定项，针对普通 user）
+const dailyTasks = [
+  //{ icon: 'calendar', title: '巡检设备', desc: '检查设备运行', route: '/pages/position/temperature-humidity' },
+  { icon: 'warning', title: '6S任务', desc: '填写6s任务', route: '/pages/sixs/sixs' },
+  //{ icon: 'file-text', title: '填写日报', desc: '提交今日产量', route: '/pages/produce/production-info' }
+];
+
+// 点击每日任务项
+const handleDailyTaskClick = (task) => {
+  if (!task || !task.route) {
+    uni.showToast({ title: '功能暂不支持', icon: 'none' });
+    return;
+  }
+  const tabPages = ['/pages/user/my', '/pages/user/notice-list', '/pages/tools/index'];
+  if (tabPages.includes(task.route)) {
+    uni.switchTab({ url: task.route });
+  } else {
+    uni.navigateTo({ url: task.route }).catch(() => {
+      uni.showToast({ title: '打开页面失败', icon: 'none' });
+    });
+  }
 };
 
 // 格式化时间（用于列表显示）
@@ -261,6 +299,44 @@ const showActionMenuFunc = () => {
 }
 
 .notice-list {
+  /* 留空改为占位式样式，避免空规则提示 */
+  padding-top: 10rpx;
+}
+
+/* 区域每日任务 */
+.daily-task-section {
+  background: #fff;
+  padding: 20rpx;
+  border-radius: 12rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+}
+.daily-task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10rpx;
+}
+.daily-task-title {
+  font-size: 30rpx;
+  color: #333;
+}
+.daily-task-sub {
+  font-size: 24rpx;
+  color: #999;
+}
+.daily-task-item-title {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 26rpx;
+  color: #333;
+  text-align: center;
+}
+.daily-task-item-desc {
+  display: block;
+  font-size: 20rpx;
+  color: #8c8c8c;
+  text-align: center;
 }
 
 .notice-item {
@@ -353,6 +429,3 @@ const showActionMenuFunc = () => {
   flex: 1;
 }
 </style>
-
-
-

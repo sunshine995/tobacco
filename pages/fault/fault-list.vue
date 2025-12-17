@@ -236,7 +236,6 @@ async function loadData(isRefresh = false) {
       faultType: activeTab.value === 'all' ? '' : activeTab.value, // 添加异常类型筛选
       userId: uni.getStorageSync('userId')
     }
-    console.log(params)
     const res = await getFaultListByTypeApi(params)
     
     if (isRefresh) {

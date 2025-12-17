@@ -1,295 +1,253 @@
 <template>
   <view class="login-container">
-    <!-- 背景 -->
-    <u-image
-      src="https://cdn.uviewui.com/uview/album/1.jpg"
-      width="100vw"
-      height="100vh"
-      mode="aspectFill"
-    >
-    </u-image>
-    
-    <!-- 渐变遮罩 -->
-    <view class="mask"></view>
+    <!-- 顶部标题区域 -->
+    <view class="header">
+      <!-- <view class="logo">
+        <u-icon name="account-circle" color="#25b579" size="100"></u-icon>
+      </view> -->
+      <view class="title">欢迎登录</view>
+      <view class="subtitle">制丝车间管理系统</view>
+    </view>
 
     <!-- 登录表单 -->
     <view class="login-form">
-      <view class="title">欢迎登录</view>
-
-      <u-form :model="form" ref="uForm" labelPosition="left">
-        <!-- 账号 -->
-        <u-form-item borderBottom>
+      <u-form :model="form" ref="uFormRef">
+        <!-- 账号输入框 -->
+        <view class="input-group">
+          <u-icon name="account" color="#25b579" size="24"></u-icon>
           <u-input
             v-model="form.userId"
             placeholder="请输入账号"
-            prefixIcon="account"
-            prefixIconStyle="font-size: 20px; color: #909399"
+            :border="false"
+            placeholderClass="placeholder"
+            :customStyle="{flex: 1, marginLeft: '10rpx'}"
             clearable
           />
-        </u-form-item>
+        </view>
 
-        <!-- 密码 -->
-        <u-form-item borderBottom>
+        <!-- 密码输入框 -->
+        <view class="input-group">
+          <u-icon name="lock" color="#25b579" size="24"></u-icon>
           <u-input
             v-model="form.password"
             placeholder="请输入密码"
             type="password"
             password
-            prefixIcon="lock"
-            prefixIconStyle="font-size: 20px; color: #909399"
+            placeholderClass="placeholder"
+            :customStyle="{flex: 1, marginLeft: '10rpx'}"
             clearable
           />
-        </u-form-item>
+        </view>
+
+        <!-- 登录按钮 -->
+        <u-button
+          :loading="loading"
+          :customStyle="btnStyle"
+          shape="circle"
+          text="登录"
+          type="primary"
+          @click="login"
+          class="login-btn"
+        ></u-button>
       </u-form>
 
-      <!-- 选项行 -->
-      <view class="options">
-        <u-checkbox-group v-model="form.rememberOptions">
-          <u-checkbox
-            name="week"
-            size="14"
-            label="记住我一周"
-            labelSize="14"
-            shape="circle"
-          ></u-checkbox>
-          <u-checkbox
-            name="month"
-            size="14"
-            label="记住我一个月"
-            labelSize="14"
-            shape="circle"
-            style="margin-left: 20rpx;"
-          ></u-checkbox>
-        </u-checkbox-group>
+      <!-- 底部链接 -->
+      <view class="footer-links">
+        <text class="link-text" @click="toForgotPassword">忘记密码</text>
+        <text class="divider">|</text>
+        <text class="link-text" @click="toRegister">注册账号</text>
       </view>
+    </view>
 
-      <!-- 登录按钮 -->
-      <u-button
-        :loading="loading"
-        :customStyle="btnStyle"
-        text="登录"
-        type="primary"
-        @click="login"
-      ></u-button>
-
-      <!-- 注册提示 -->
-      <view class="register-tip">
-        第一次使用？
-        <text class="link" @tap="onRegister">立即注册</text>
-      </view>
+    <!-- 底部版权 -->
+    <view class="copyright">
+      <text>© 2024 车间管理系统</text>
     </view>
   </view>
 </template>
 
-<script>
-// 假设您有 login API
-import { loginApi, registerApi } from '@/api/auth'
+<script setup>
+import { ref, reactive } from 'vue'
+import { loginApi } from '@/api/auth'
+import { mqttClient } from '@/utils/MqttService.js'
 
-export default {
-  data() {
-    return {
-      loading: false,
-      form: {
-        userId: '',
-        password: '',
-        rememberOptions: [] // 改为数组，支持多项选择
-      },
-      // 按钮样式（渐变）
-      btnStyle: {
-        margin: '40rpx 0',
-        background: 'linear-gradient(45deg, #25b579, #1d9567)',
-        border: 'none'
-      }
-    }
-  },
-  methods: {
-    async login() {
-      // 表单校验
-      if (!this.form.password) {
-        uni.showToast({ title: '请输入密码', icon: 'none' })
-        return
-      }
+const loading = ref(false)
+const form = reactive({
+  userId: '',
+  password: ''
+})
 
-      this.loading = true
+// 按钮样式
+const btnStyle = reactive({
+  marginTop: '80rpx',
+  background: 'linear-gradient(90deg, #25b579, #1d9567)',
+  border: 'none',
+  height: '90rpx',
+  fontSize: '32rpx'
+})
 
-      try {
-        const res = await loginApi(this.form)
-        
-        // 登录成功,存储用户信息
-        uni.setStorageSync('token', res.token)
-        uni.setStorageSync('userId', res.userId)
-        uni.setStorageSync('userInfo', res.user)
-        
-        // 如果选择了记住密码，存储登录信息
-        if (this.form.rememberOptions.length > 0) {
-          this.saveLoginDataWithExpiration()
-        } else {
-          uni.removeStorageSync('loginData')
-        }
-        
-        uni.showToast({ title: '登录成功', icon: 'success' })
+// 忘记密码
+const toForgotPassword = () => {
+  uni.navigateTo({
+    url: '/pages/auth/forgot-password'
+  })
+}
 
-        // 返回上一页或跳转首页
-        uni.reLaunch({
-          url: '/pages/user/notice-list',
-          success: () => {
-            console.log('🚀 成功跳转到首页（公告列表）');
-          },
-          fail: (err) => {
-            console.error('💥 跳转失败，请检查：', err);
-          }
-        });
-      } catch (error) {
-        uni.showToast({
-          title: error.message || '登录失败',
-          icon: 'none'
-        })
-      } finally {
-        this.loading = false
-      }
-    },
+// 注册
+const toRegister = () => {
+  uni.navigateTo({
+    url: '/pages/user/register'
+  })
+}
 
-    // 保存登录数据并设置过期时间
-    saveLoginDataWithExpiration() {
-      const loginData = {
-        userId: this.form.userId,
-        password: this.form.password,
-        // 计算过期时间
-        expireTime: this.calculateExpireTime(),
-        // 保存选择的记住选项
-        rememberOptions: this.form.rememberOptions
-      }
+// 登录
+const login = async () => {
+  if (!form.userId.trim()) {
+    uni.showToast({ title: '请输入账号', icon: 'none' })
+    return
+  }
+  if (!form.password.trim()) {
+    uni.showToast({ title: '请输入密码', icon: 'none' })
+    return
+  }
+  
+  loading.value = true
+  
+  try {
+    const res = await loginApi(form)
+    const userId = res.userId
+    
+    // 保存用户信息
+    uni.setStorageSync('token', res.token)
+    uni.setStorageSync('userId', userId)
+    uni.setStorageSync('userInfo', res.user)
+    
+    // 连接MQTT
+    await mqttClient.connect()
+    
+    // 订阅个人通知主题
+    await mqttClient.subscribe(`workshop/${userId}/notice`, (message, topic) => {
+      console.log('收到个人通知:', message)
+      uni.showToast({
+        title: '收到新消息',
+        icon: 'none'
+      })
       
-      // 存储到本地
-      uni.setStorageSync('loginData', loginData)
-    },
-
-    // 计算过期时间
-    calculateExpireTime() {
-      const now = new Date()
-      let expireTime = new Date(now)
-      
-      if (this.form.rememberOptions.includes('month')) {
-        // 记住一个月
-        expireTime.setDate(now.getDate() + 30)
-      } else if (this.form.rememberOptions.includes('week')) {
-        // 记住一周
-        expireTime.setDate(now.getDate() + 7)
+      uni.$emit('new-message', { message, topic })
+    })
+    
+    // 登录成功提示
+    uni.showToast({
+      title: '登录成功',
+      icon: 'success',
+      complete: () => {
+        uni.reLaunch({ url: '/pages/user/notice-list' })
       }
-      
-      return expireTime.getTime() // 返回时间戳
-    },
-
-    // 检查登录数据是否过期
-    checkLoginDataExpired() {
-      const saved = uni.getStorageSync('loginData')
-      if (saved && saved.expireTime) {
-        const now = new Date().getTime()
-        if (now > saved.expireTime) {
-          // 已过期，删除存储的数据
-          uni.removeStorageSync('loginData')
-          return true
-        }
-        return false
-      }
-      return true // 没有数据或格式不正确，认为已过期
-    },
-
-    // 获取有效的登录数据
-    getValidLoginData() {
-      if (this.checkLoginDataExpired()) {
-        return null
-      }
-      
-      const saved = uni.getStorageSync('loginData')
-      return saved
-    },
-
-    onForgetPassword() {
-      uni.showToast({ title: '跳转忘记密码', icon: 'none' })
-      // uni.navigateTo({ url: '/pages/auth/forget' })
-    },
-
-    onRegister() {
-      uni.showToast({ title: '跳转注册页', icon: 'none' })
-         uni.navigateTo({ url: '/pages/user/register' })
-    }
-  },
-
-  // 页面加载时，读取记住的账号密码
-  onLoad() {
-    const saved = this.getValidLoginData()
-    if (saved) {
-      this.form.userId = saved.userId
-      this.form.password = saved.password
-      this.form.rememberOptions = saved.rememberOptions || []
-    }
+    })
+    
+  } catch (error) {
+    uni.showToast({ title: error.message || '登录失败', icon: 'none' })
+    console.error('登录失败:', error)
+  } finally {
+    loading.value = false
   }
 }
 </script>
 
 <style scoped>
 .login-container {
-  position: relative;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 80rpx 60rpx 40rpx;
+  display: flex;
+  flex-direction: column;
 }
 
-.mask {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.3); /* 黑色半透明遮罩 */
-  z-index: 1;
+/* 头部样式 */
+.header {
+  text-align: center;
+  margin-bottom: 80rpx;
 }
 
-.login-form {
-  position: absolute;
-  top: 30%;
-  left: 50%;
-  transform: translate(-50%, 0);
-  width: 80%;
-  padding: 40rpx;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 20rpx;
-  z-index: 2;
-  box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.1);
+.logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 30rpx;
 }
 
 .title {
-  font-size: 40rpx;
+  font-size: 48rpx;
   font-weight: bold;
-  color: #303133;
-  text-align: center;
-  margin-bottom: 60rpx;
+  color: #333;
+  margin-bottom: 10rpx;
 }
 
-.options {
+.subtitle {
+  font-size: 28rpx;
+  color: #666;
+}
+
+/* 表单样式 */
+.login-form {
+  flex: 1;
+}
+
+.input-group {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin: 20rpx 0 40rpx;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 30rpx;
+  margin-bottom: 40rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+  border: 1rpx solid #eee;
+}
+
+.input-group:focus-within {
+  border-color: #25b579;
+  box-shadow: 0 4rpx 12rpx rgba(37, 181, 121, 0.1);
+}
+
+.placeholder {
+  color: #999;
   font-size: 28rpx;
-  color: #606266;
 }
 
-.forget {
+.login-btn {
+  box-shadow: 0 8rpx 20rpx rgba(37, 181, 121, 0.3);
+  transition: all 0.3s;
+}
+
+.login-btn:active {
+  transform: scale(0.98);
+}
+
+/* 底部链接 */
+.footer-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 50rpx;
+}
+
+.link-text {
+  font-size: 26rpx;
   color: #25b579;
+  padding: 0 20rpx;
 }
 
-.register-tip {
+.divider {
+  color: #ddd;
+  font-size: 26rpx;
+}
+
+/* 版权信息 */
+.copyright {
   text-align: center;
-  font-size: 28rpx;
-  color: #606266;
-}
-
-.link {
-  color: #25b579;
-  font-weight: 500;
+  margin-top: 40rpx;
+  padding-top: 40rpx;
+  border-top: 1rpx solid #eee;
+  color: #999;
+  font-size: 24rpx;
 }
 </style>
-
-
-

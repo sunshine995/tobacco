@@ -165,7 +165,7 @@ onMounted(async () => {
 // 岗位验证状态数据（每个岗位配置：自定义分母totalCount + 接口返回的分子dataCount）
 const positions = reactive([
   {
-    name: '片烟出库验证',
+    name: '片烟出库',
     segment: '片烟出库',
     path: 'strip-tobacco-warehousing',
     verificationStatus: '', 
@@ -175,7 +175,7 @@ const positions = reactive([
     dataCount: 0 
   },
   {
-    name: '机械手验证',
+    name: '机械手',
     segment: '机械手',
     path: 'robot-arm',
     verificationStatus: '',
@@ -185,9 +185,30 @@ const positions = reactive([
     dataCount: 0
   },
    {
-    name: '切片机验证',
+    name: '切片机',
     segment: '切片机',
     path: 'slicing-machine',
+    verificationStatus: '',
+    currentStep: 0,
+    hasCurrentBatchStatus: false,
+    totalCount: 4, 
+    dataCount: 0
+  },
+  {
+    name: '真空回潮',
+    segment: '真空回潮',
+    path: 'vacuum-reconditioning',
+    verificationStatus: '',
+    currentStep: 0,
+    hasCurrentBatchStatus: false,
+    totalCount: 2, 
+    dataCount: 0
+  },
+ 
+  {
+    name: '翻箱机',
+    segment: '翻箱机',
+    path: 'box-turning-machine',
     verificationStatus: '',
     currentStep: 0,
     hasCurrentBatchStatus: false,
@@ -195,28 +216,7 @@ const positions = reactive([
     dataCount: 0
   },
   {
-    name: '真空回潮验证',
-    segment: '真空回潮',
-    path: 'vacuum-reconditioning',
-    verificationStatus: '',
-    currentStep: 0,
-    hasCurrentBatchStatus: false,
-    totalCount: 4, 
-    dataCount: 0
-  },
- 
-  {
-    name: '翻箱机验证',
-    segment: '翻箱机',
-    path: 'box-turning-machine',
-    verificationStatus: '',
-    currentStep: 0,
-    hasCurrentBatchStatus: false,
-    totalCount: 1, 
-    dataCount: 0
-  },
-  {
-    name: '松散回潮验证',
+    name: '松散回潮',
     segment: '松散回潮',
     path: 'loose-moisture',
     verificationStatus: '',
@@ -226,7 +226,7 @@ const positions = reactive([
     dataCount: 0
   },
   {
-    name: '激光除杂验证',
+    name: '激光除杂',
     segment: '激光除杂',
     path: 'laser-cleaning',
     verificationStatus: '',
@@ -236,27 +236,27 @@ const positions = reactive([
     dataCount: 0
   },
   {
-    name: '预混柜验证',
+    name: '预混柜',
     segment: '预混柜',
     path: 'pre-mix-cabinet',
     verificationStatus: '',
     currentStep: 0,
     hasCurrentBatchStatus: false,
-    totalCount: 4, 
+    totalCount: 6, 
     dataCount: 0
   },
   {
-    name: '加料机验证',
+    name: '加料机',
     segment: '加料机',
     path: 'feeding-machine',
     verificationStatus: '',
     currentStep: 0,
     hasCurrentBatchStatus: false,
-    totalCount: 5, 
+    totalCount: 3, 
     dataCount: 0
   },
   {
-    name: '储叶柜验证',
+    name: '储叶柜',
     segment: '储叶柜',
     path: 'leaf-storage-cabinet',
     verificationStatus: '',
@@ -266,7 +266,7 @@ const positions = reactive([
     dataCount: 0
   },
   {
-    name: '增温增湿验证',
+    name: '增温增湿',
     segment: '增温增湿',
     path: 'temperature-humidity',
     verificationStatus: '',
@@ -276,7 +276,7 @@ const positions = reactive([
     dataCount: 0
   },
   {
-    name: '切丝机验证',
+    name: '切丝机',
     segment: '切丝机',
     path: 'cutting-machine',
     verificationStatus: '',
@@ -286,7 +286,7 @@ const positions = reactive([
     dataCount: 0
   },
   {
-    name: '烘丝机验证',
+    name: '烘丝机',
     segment: '烘丝机',
     path: 'drying-machine',
     verificationStatus: '',
@@ -296,7 +296,7 @@ const positions = reactive([
     dataCount: 0
   },
   {
-    name: '膨化烟丝掺对验证',
+    name: '膨化烟丝掺对',
     segment: '膨化烟丝',
     path: 'expanded-tobacco',
     verificationStatus: '',
@@ -306,7 +306,7 @@ const positions = reactive([
     dataCount: 0
   },
   {
-    name: '加香机验证',
+    name: '加香机',
     segment: '加香机',
     path: 'flavoring-machine',
     verificationStatus: '',
@@ -316,7 +316,7 @@ const positions = reactive([
     dataCount: 0
   },
   {
-    name: '残烟丝验证',
+    name: '残烟丝',
     segment: '残烟丝',
     path: 'residual-tobacco',
     verificationStatus: '',
@@ -326,7 +326,7 @@ const positions = reactive([
     dataCount: 0
   },
   {
-    name: '混丝柜验证',
+    name: '混丝柜',
     segment: '混丝柜',
     path: 'silk-mixing-cabinet',
     verificationStatus: '',
@@ -336,23 +336,23 @@ const positions = reactive([
     dataCount: 0
   },
   {
-    name: '装箱站验证',
+    name: '装箱站',
     segment: '装箱站',
     path: 'packing-station',
     verificationStatus: '',
     currentStep: 0,
     hasCurrentBatchStatus: false,
-    totalCount: 2, 
+    totalCount: 3, 
     dataCount: 0
   },
   {
-    name: '丝库验证',
+    name: '丝库',
     segment: '丝库',
     path: 'silk-storage',
     verificationStatus: '',
     currentStep: 0,
     hasCurrentBatchStatus: false,
-    totalCount: 1, 
+    totalCount: 2, 
     dataCount: 0
   }
 ])
@@ -433,9 +433,9 @@ onMounted(async () => {
             position.dataCount = result.dataCount || 0 // 注意接口字段（是dataCount还是data_count）
             
             // 调试日志
-            console.log(`岗位：${position.name}`)
-            console.log(`  - 进度：${position.dataCount}/${position.totalCount}`)
-            console.log(`  - currentStep：${position.currentStep}`)
+            // console.log(`岗位：${position.name}`)
+            // console.log(`  - 进度：${position.dataCount}/${position.totalCount}`)
+            // console.log(`  - currentStep：${position.currentStep}`)
           }
         } catch (error) {
           console.error(`查询${position.name}验证状态失败:`, error)

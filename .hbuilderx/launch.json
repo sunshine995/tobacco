@@ -3,6 +3,7 @@
     "configurations" : [
         {
             "customPlaygroundType" : "device",
+            "packageName" : "com.oneplus.bbs",
             "playground" : "standard",
             "type" : "uni-app:app-android"
         }

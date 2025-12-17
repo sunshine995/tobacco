@@ -415,7 +415,7 @@ const submitSingleTask = async (task, index) => {
     
     const submitData = {
       line: form.line,              // 产线
-      classes: uni.getStorageSync('userInfo').class,            // 班组
+      classes: uni.getStorageSync('userInfo').position,            // 班组
       userId: uni.getStorageSync('userId'),               // 用户ID
       number: task.order,            // 次序
       brand: task.brand,            // 牌号

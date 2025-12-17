@@ -24,10 +24,7 @@
 
 <script setup>  
 import { ref } from 'vue';  
-import { useRouter } from 'vue-router';  // uni-app Vue3 路由钩子
-
-// 路由实例（用于页面跳转）
-const router = useRouter();
+// 不使用 vue-router push 以避免在多端产生不一致或冲突，使用 uni.navigateTo -> 更可靠的多端跳转
 
 // 创建响应式数据：5个功能模块（图标+标题+跳转路径）
 const moduleList = ref([  
@@ -63,16 +60,24 @@ const uToastRef = ref(null);
 
 // 模块点击事件：跳转对应页面
 const handleModuleClick = (path) => {
-    if (!path) return;
-    
-    // 1. 路由跳转（uni-app 兼容多端的跳转方式）
-    router.push({
-        path: path
-    }).catch(err => {
-        console.error('页面跳转失败：', err);
-        // 跳转失败提示（比如页面未创建）
-        uToastRef.value?.error('页面暂未开发');
-    });
+        if (!path) return;
+        console.log(path)
+        // 使用 uni 的导航 API：跨端兼容（下方处理 tab 页）
+        // 使用 uni 的导航 API：跨端兼容
+        // 如果目标是 tabBar 的页面，需要使用 switchTab 而不是 navigateTo。
+        const tabPages = [
+            '/pages/user/my',
+            '/pages/user/notice-list',
+            '/pages/tools/index'
+        ];
+        if (tabPages.includes(path)) {
+            uni.switchTab({ url: path });
+        } else {
+            uni.navigateTo({ url: path }).catch(err => {
+                console.error('uni.navigateTo 失败：', err);
+                uToastRef.value?.error('页面跳转失败');
+            });
+        }
 
     // 2. 可选：添加点击提示（不需要可删除）
     uToastRef.value?.success(`进入${moduleList.value.find(item => item.path === path)?.title}`);

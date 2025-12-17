@@ -320,7 +320,7 @@ const submitCheck = async () => {
           cycleCount: cycleCount.value,
           Status: 'normal'
         },
-      dataCount: 1,
+      dataCount: 2,
       operatorId: uni.getStorageSync('userId')
     };
     

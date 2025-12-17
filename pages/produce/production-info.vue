@@ -266,7 +266,6 @@ const navigateToPositionVerification = async (order) => {
         })
       } else if (res && res.role === 'USER') {
         try {
-          console.log('用户角色为USER，跳转到岗位验证页面')
           // 调用权限验证接口，使用用户岗位和工单线组进行验证
           const checkPermissionData = {
             position: res.position || '',
@@ -396,10 +395,10 @@ const getUserInfo = () => {
 
 // 查询今日工单（原有完整逻辑）
 const queryWorkOrders = async () => {
-  console.log('开始查询工单')
+  // console.log('开始查询工单')
   
   const userId = getUserInfo()
-  console.log('userId类型:', typeof userId, '值:', userId)
+  //console.log('userId类型:', typeof userId, '值:', userId)
   
   // 验证userId的有效性
   if (!userId || userId === 'undefined' || userId === undefined) {
@@ -427,49 +426,6 @@ const queryWorkOrders = async () => {
     } else if (res && typeof res === 'object' && res.data && Array.isArray(res.data.list)) {
       orderList = res.data.list
     } else {
-      console.warn('数据格式不符合预期，使用模拟数据')
-      // 模拟数据
-      orderList = [
-        {
-          id: 1,
-          userId: 19,
-          classes: '甲班',
-          line: '叶A',
-          number: "预混柜1号",
-          brand: '兰州（硬珍品）',
-          batchNo: 'LZ(YZP)2510006',
-          yield: '10000KG',
-          remark: null,
-          images: null,
-          createTime: '2025-10-27 15:06:51'
-        },
-        {
-          id: 2,
-          userId: 19,
-          classes: '甲班',
-          line: '叶A',
-          number: "混丝柜3号",
-          brand: '兰州（软珍品）',
-          batchNo: 'LZ(RZP)2510008',
-          yield: '8000KG',
-          remark: '新配方测试',
-          images: ['https://example.com/image1.jpg', 'https://example.com/image2.jpg'],
-          createTime: '2025-10-27 16:30:00'
-        },
-        {
-          id: 3,
-          userId: 19,
-          classes: '乙班',
-          line: '梗线',
-          number: "梗线处理5号",
-          brand: '通用梗丝',
-          batchNo: 'GS2510012',
-          yield: '3000KG',
-          remark: '设备维护后首单',
-          images: ['https://example.com/image3.jpg'],
-          createTime: '2025-10-27 14:15:00'
-        }
-      ]
       showToastMessage('使用模拟数据', 'info')
     }
     
@@ -498,42 +454,9 @@ const queryWorkOrders = async () => {
       total: sortedList.length,
       list: sortedList
     }
-    console.log('过滤排序后工单:', workOrders.value)
     
   } catch (error) {
     console.error('查询今日工单失败:', error)
-    // 模拟数据兜底
-    workOrders.value = {
-      total: 2,
-      list: [
-        {
-          id: 999,
-          userId: 19,
-          classes: '甲班',
-          line: selectedLine.value,
-          number: "测试预混柜",
-          brand: '测试品牌',
-          batchNo: 'TEST2510001',
-          yield: '5000KG',
-          remark: '接口调用失败，显示模拟数据',
-          images: null,
-          createTime: new Date().toISOString()
-        },
-        {
-          id: 1000,
-          userId: 19,
-          classes: '乙班',
-          line: selectedLine.value,
-          number: "测试混丝柜",
-          brand: '测试品牌2',
-          batchNo: 'TEST2510002',
-          yield: '6000KG',
-          remark: null,
-          images: ['https://example.com/test.jpg'],
-          createTime: new Date().toISOString()
-        }
-      ]
-    }
     showToastMessage('接口调用失败，显示模拟数据', 'warning')
   } finally {
     loading.value = false

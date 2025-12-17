@@ -8,7 +8,7 @@
     <!-- 上传组件区域 -->
     <view class="upload-section">
       <!-- 开班检查 -->
-      <view class="check-section">
+      <view class="check-section" v-if="myOrder.number === '1'">
         <view class="check-section-title">
           <text class="section-sub-title">开班检查</text>
         </view>
@@ -86,64 +86,65 @@
         </up-button>
       </view>
 
-      <!-- 入口烟沫统计 -->
-      <view class="check-section">
-        <view class="check-section-title">
-          <text class="section-sub-title">烟沫统计</text>
-        </view>
-        <view class="form-item">
-          <view class="form-label required">
-            <text>牌号</text>
-          </view>
-          <u-picker
-            :show="showBrandPicker"
-            :columns="brandColumns"
-            @confirm="handleBrandConfirm"
-            @cancel="showBrandPicker = false"
-            z-index="9999"
-          />
-          <u-cell
-            :value="formData.brand.name || '请选择牌号'"
-            is-link
-            @click="showBrandPicker = true"
-            :arrow="true"
-            class="form-control-picker"
-          />
+      <!-- 入口烟沫统计 - 美化版 -->
+      <view class="tobacco-stats-card">
+        <view class="card-header">
+          <text class="card-title">烟沫统计</text>
+          <view class="card-badge" v-if="hasSubmittedModules.tobaccoDustStats">已提交</view>
         </view>
 
-        <view class="form-item form-item-row">
-          <view class="form-label required">
-            <text>生产日期时间</text>
+        <!-- 基础信息组 -->
+        <view class="form-group">
+          <view class="group-label">基础信息</view>
+          <view class="form-item">
+            <view class="form-label required">牌号</view>
+            <u-picker
+              :show="showBrandPicker"
+              :columns="brandColumns"
+              @confirm="handleBrandConfirm"
+              @cancel="showBrandPicker = false"
+              z-index="9999"
+            />
+            <u-cell
+              :value="formData.brand.name || '请选择牌号'"
+              is-link
+              @click="showBrandPicker = true"
+              :arrow="true"
+              class="form-control-picker"
+            />
           </view>
-          <view class="form-row">
-            <view class="form-col-50">
+
+          <view class="form-row-2col">
+            <view class="form-col">
+              <view class="form-label required">班别</view>
               <u-picker
-                :show="showDatePicker"
-                :columns="dateColumns"
-                @confirm="handleDateConfirm"
-                @cancel="showDatePicker = false"
+                :show="showClassPicker"
+                :columns="classColumns"
+                @confirm="handleClassConfirm"
+                @cancel="showClassPicker = false"
                 z-index="9999"
               />
               <u-cell
-                :value="formData.productionDate || '请选择日期'"
+                :value="formData.class || '请选择班别'"
                 is-link
-                @click="showDatePicker = true"
+                @click="showClassPicker = true"
                 :arrow="true"
                 class="form-control-picker"
               />
             </view>
-            <view class="form-col-50">
+            <view class="form-col">
+              <view class="form-label required">班次</view>
               <u-picker
-                :show="showTimePicker"
-                :columns="timeColumns"
-                @confirm="handleTimeConfirm"
-                @cancel="showTimePicker = false"
+                :show="showShiftPicker"
+                :columns="shiftColumns"
+                @confirm="handleShiftConfirm"
+                @cancel="showShiftPicker = false"
                 z-index="9999"
               />
               <u-cell
-                :value="formData.productionTime || '请选择时间'"
+                :value="formData.shift || '请选择班次'"
                 is-link
-                @click="() => { showTimePicker = true; formData.productionTime = formatDate(new Date(), 'HH:mm'); }"
+                @click="showShiftPicker = true"
                 :arrow="true"
                 class="form-control-picker"
               />
@@ -151,90 +152,92 @@
           </view>
         </view>
 
-        <view class="form-item">
-          <view class="form-label required">
-            <text>班别</text>
+        <!-- 时间信息组 -->
+        <view class="form-group">
+          <view class="group-label">时间信息</view>
+          <view class="form-item">
+            <view class="form-label required">生产日期时间</view>
+            <view class="form-row-2col">
+              <view class="form-col">
+                <u-picker
+                  :show="showDatePicker"
+                  :columns="dateColumns"
+                  @confirm="handleDateConfirm"
+                  @cancel="showDatePicker = false"
+                  z-index="9999"
+                />
+                <u-cell
+                  :value="formData.productionDate || '选择日期'"
+                  is-link
+                  @click="showDatePicker = true"
+                  :arrow="true"
+                  class="form-control-picker"
+                />
+              </view>
+              <view class="form-col">
+                <u-picker
+                  :show="showTimePicker"
+                  :columns="timeColumns"
+                  @confirm="handleTimeConfirm"
+                  @cancel="showTimePicker = false"
+                  z-index="9999"
+                />
+                <u-cell
+                  :value="formData.productionTime || '选择时间'"
+                  is-link
+                  @click="() => { showTimePicker = true; formData.productionTime = formatDate(new Date(), 'HH:mm'); }"
+                  :arrow="true"
+                  class="form-control-picker"
+                />
+              </view>
+            </view>
           </view>
-          <u-picker
-            :show="showClassPicker"
-            :columns="classColumns"
-            @confirm="handleClassConfirm"
-            @cancel="showClassPicker = false"
-            z-index="9999"
-          />
-          <u-cell
-            :value="formData.class || '请选择班别'"
-            is-link
-            @click="showClassPicker = true"
-            :arrow="true"
-            class="form-control-picker"
-          />
+
+          <view class="form-item">
+            <view class="form-label required">移交日期</view>
+            <u-picker
+              :show="showTransferDatePicker"
+              :columns="transferDateColumns"
+              @confirm="handleTransferDateConfirm"
+              @cancel="showTransferDatePicker = false"
+              z-index="9999"
+            />
+            <u-cell
+              :value="formData.transferDate || '请选择移交日期'"
+              is-link
+              @click="showTransferDatePicker = true"
+              :arrow="true"
+              class="form-control-picker"
+            />
+          </view>
         </view>
 
-        <view class="form-item">
-          <view class="form-label required">
-            <text>班次</text>
+        <!-- 数据信息组 -->
+        <view class="form-group">
+          <view class="group-label">数据信息</view>
+          <view class="form-item">
+            <view class="form-label required">重量（KG）</view>
+            <u-input
+              v-model="formData.weight"
+              type="number"
+              placeholder="请输入重量"
+              class="form-control"
+              step="0.01"
+              border="surround"
+              clearable
+            />
           </view>
-          <u-picker
-            :show="showShiftPicker"
-            :columns="shiftColumns"
-            @confirm="handleShiftConfirm"
-            @cancel="showShiftPicker = false"
-            z-index="9999"
-          />
-          <u-cell
-            :value="formData.shift || '请选择班次'"
-            is-link
-            @click="showShiftPicker = true"
-            :arrow="true"
-            class="form-control-picker"
-          />
         </view>
 
-        <view class="form-item">
-          <view class="form-label required">
-            <text>重量（KG）</text>
-          </view>
-          <u-input
-            v-model="formData.weight"
-            type="number"
-            placeholder="请输入重量"
-            class="form-control"
-            step="0.01"
-            border="surround"
-            clearable
-          />
-        </view>
-
-        <view class="form-item">
-          <view class="form-label required">
-            <text>移交日期</text>
-          </view>
-          <u-picker
-            :show="showTransferDatePicker"
-            :columns="transferDateColumns"
-            @confirm="handleTransferDateConfirm"
-            @cancel="showTransferDatePicker = false"
-            z-index="9999"
-          />
-          <u-cell
-            :value="formData.transferDate || '请选择移交日期'"
-            is-link
-            @click="showTransferDatePicker = true"
-            :arrow="true"
-            class="form-control-picker"
-          />
-        </view>
-
-        <!-- 烟沫统计提交按钮 -->
+        <!-- 提交按钮 -->
         <up-button
           type="primary"
           @click="submitDust"
           :loading="submitting"
-          class="submit-btn primary-btn"
+          class="submit-btn-tobacco"
           :disabled="submitting || hasSubmittedModules.tobaccoDustStats"
         >
-          {{ submitting ? '提交中...' : hasSubmittedModules.tobaccoDustStats ? '已提交' : '提交' }}
+          {{ submitting ? '提交中...' : hasSubmittedModules.tobaccoDustStats ? '已提交' : '提交烟沫统计' }}
         </up-button>
       </view>
     </view>
@@ -290,7 +293,8 @@ const toggleCalculator = () => {
 const myOrder = ref({
   id: '',
   batchNo: '',
-  brand: ''
+  brand: '',
+  number: '',
 });
 
 // 所有模块的已提交数据（全局存储，提交时自动合并）
@@ -620,11 +624,12 @@ const loadExistingCheckRecord = async (batchNo) => {
 
 // 页面加载时初始化
 onLoad(async (options) => {
-  if (options && (options.id || options.batchNo || options.brand)) {
+  if (options && (options.id || options.batchNo || options.brand || options.number)) {
     myOrder.value = {
       id: options.id ? decodeURIComponent(options.id) : '',
       batchNo: options.batchNo ? decodeURIComponent(options.batchNo) : '',
-      brand: options.brand ? decodeURIComponent(options.brand) : ''
+      brand: options.brand ? decodeURIComponent(options.brand) : '',
+      number: options.number ? decodeURIComponent(options.number) : '',
     };
   } else {
     getDataFromGlobal();
@@ -637,6 +642,8 @@ onLoad(async (options) => {
 });
 
 onMounted(async () => {
+  console.log('Mounted with order:', myOrder.value);
+
   if (!myOrder.value.batchNo && !myOrder.value.brand) {
     getDataFromGlobal();
   }
@@ -740,10 +747,19 @@ const submitModule = async (moduleType) => {
       brand: myOrder.value.brand,
       segment: "加料机",
       verificationResult: allData.value,
+
+
+
+      // 修改后的 dataCount 计算逻辑
       dataCount: Object.keys(allData.value).filter(key => {
+        // 如果是开班检查且不是第一批次，则不计入统计
+        if (key === 'imagesPressure' && myOrder.value.number !== '1') {
+          return false;
+        }
         const val = allData.value[key];
         return (Array.isArray(val) && val.length > 0) || (typeof val === 'object' && val !== null && Object.keys(val).length > 0);
       }).length,
+
       operatorId: uni.getStorageSync('userId') || '',
       workOrderId: myOrder.value.id
     };
@@ -869,11 +885,152 @@ const handleValidate = (data) => {
 .primary-btn { background-color: #007aff; border-radius: 8rpx; }
 .primary-btn:disabled { background-color: #95a5a6; color: #fff; cursor: not-allowed; }
 
-/* 烟沫统计表单样式 */
-.form-item { margin-bottom: 25rpx; display: flex; flex-direction: column; }
-.form-label { font-size: 26rpx; color: #333; margin-bottom: 10rpx; font-weight: 500; }
-.form-label.required::before { content: '*'; color: #F53F3F; margin-right: 6rpx; }
-.form-control, .form-control-picker { width: 100%; font-size: 28rpx; border-radius: 8rpx; }
+/* 烟沫统计卡片 - 美化版 */
+.tobacco-stats-card {
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
+  margin-bottom: 30rpx;
+  transition: box-shadow 0.3s ease;
+}
+
+.tobacco-stats-card:active {
+  box-shadow: 0 2rpx 16rpx rgba(0, 0, 0, 0.12);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #007aff 0%, #0056cc 100%);
+  padding: 24rpx 28rpx;
+  border-bottom: 2rpx solid rgba(0, 122, 255, 0.1);
+}
+
+.card-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: 0.5rpx;
+}
+
+.card-badge {
+  background-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  padding: 6rpx 14rpx;
+  border-radius: 20rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+  backdrop-filter: blur(10px);
+}
+
+/* 表单组 */
+.form-group {
+  padding: 24rpx 28rpx;
+  position: relative;
+}
+
+.form-group:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 28rpx;
+  right: 28rpx;
+  height: 1rpx;
+  background: linear-gradient(to right, transparent 0%, #e8e8e8 20%, #e8e8e8 80%, transparent 100%);
+}
+
+.group-label {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #333333;
+  margin-bottom: 16rpx;
+  padding-bottom: 8rpx;
+  border-bottom: 2rpx solid #007aff;
+  display: inline-block;
+}
+
+/* 两列布局 */
+.form-row-2col {
+  display: flex;
+  gap: 16rpx;
+  width: 100%;
+}
+
+.form-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.form-item {
+  margin-bottom: 20rpx;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-item:last-child {
+  margin-bottom: 0;
+}
+
+.form-label {
+  font-size: 26rpx;
+  color: #444444;
+  margin-bottom: 10rpx;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+.form-label.required::before {
+  content: '*';
+  color: #F53F3F;
+  margin-right: 6rpx;
+  font-weight: 700;
+}
+
+.form-control, .form-control-picker {
+  width: 100%;
+  font-size: 28rpx;
+  border-radius: 8rpx;
+  transition: all 0.2s ease;
+}
+
+.form-control-picker {
+  background-color: #f8f9fa;
+  border: 1rpx solid #e8e8e8;
+  padding: 12rpx 16rpx;
+  min-height: 44rpx;
+  display: flex;
+  align-items: center;
+  color: #666666;
+}
+
+.form-control-picker:active {
+  background-color: #f0f2f5;
+  border-color: #007aff;
+}
+
+.submit-btn-tobacco {
+  background: linear-gradient(135deg, #007aff 0%, #0056cc 100%);
+  border-radius: 12rpx;
+  margin: 24rpx 28rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  letter-spacing: 0.5rpx;
+  height: 52rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 122, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.submit-btn-tobacco:disabled {
+  background: #c0c0c0;
+  box-shadow: 0 2rpx 8rpx rgba(192, 192, 192, 0.3);
+  color: #ffffff;
+  cursor: not-allowed;
+}
+
+/* 原有样式保持 */
 .form-item-row { flex-direction: row; align-items: center; gap: 10rpx; }
 .form-row { display: flex; width: 100%; gap: 16rpx; }
 .form-col-50 { flex: 1; }
