@@ -159,7 +159,7 @@ const loadNoticeDetail = async () => {
   try {
     const response = await get(`/api/notice/detail`, {noticeId: noticeId.value});
     noticeDetail.value = response;
-	  console.log(noticeDetail)
+	// console.log(noticeDetail)
     const files = [];
     if (Array.isArray(response.fileUrls) && Array.isArray(response.fileOriginUrls)) {
       for (let i = 0; i < response.fileUrls.length; i++) {

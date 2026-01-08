@@ -319,33 +319,6 @@
 			}
 		},
 		{
-			"path" : "pages/study/policy-meeting",
-			"style" : 
-			{
-				"navigationBarTitleText" : "政策会议"
-			}
-		},{
-			"path" : "pages/study/safety-rules",
-			"style" : 
-			{
-				"navigationBarTitleText" : "安全准则"
-			}
-		},
-		{
-			"path" : "pages/study/equipment-repair",
-			"style" : 
-			{
-				"navigationBarTitleText" : "设备维修"
-			}
-		},
-		{
-			"path" : "pages/study/equipment-maintenance",
-			"style" : 
-			{
-				"navigationBarTitleText" : "设备保养"
-			}
-		},
-		{
 			"path" : "pages/sixs/sixs",
 			"style" : 
 			{
@@ -364,6 +337,20 @@
 			"style" : 
 			{
 				"navigationBarTitleText" : "6s任务详情"
+			}
+		},
+		{
+			"path" : "pages/study/category-list",
+			"style" : 
+			{
+				"navigationBarTitleText" : "学习列表"
+			}
+		},
+		{
+			"path" : "pages/study/resource-detail",
+			"style" : 
+			{
+				"navigationBarTitleText" : ""
 			}
 		}
   ],
